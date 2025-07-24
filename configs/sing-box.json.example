@@ -1,0 +1,75 @@
+{
+    "log": { "disabled": false, "level": "info", "timestamp": true },
+    "dns": {
+        "servers": [
+            {
+                "type": "https",
+                "tag": "dnscrypt-proxy-doh",
+                "server": "127.0.0.1",
+                "server_port": 3000,
+                "path": "dns-query",
+                "tls": {
+                    "enabled": true,
+                    "disable_sni": true,
+                    "insecure": true
+                }
+            },
+            {
+                "type": "udp",
+                "tag": "dnscrypt-proxy-udp",
+                "server": "127.0.0.1",
+                "server_port": 53
+            },
+            { "type": "local", "tag": "local" }
+        ],
+        "strategy": "prefer_ipv4",
+        "disable_cache": true,
+        "disable_expire": false,
+        "independent_cache": false,
+        "reverse_mapping": false
+    },
+    "inbounds": [
+        {
+            "type": "mixed",
+            "tag": "mixed-in",
+            "listen": "0.0.0.0",
+            "listen_port": 2080,
+            "reuse_addr": true,
+            "tcp_fast_open": true,
+            "tcp_multi_path": true,
+            "udp_fragment": false
+        }
+    ],
+    "outbounds": [
+        { "type": "direct", "tag": "direct" },
+        { "type": "block", "tag": "block" }
+    ],
+    "route": {
+        "rules": [
+            { "action": "sniff" },
+            { "protocol": "dns", "action": "hijack-dns" },
+            { "ip_is_private": true, "action": "reject" },
+            { "domain": ["appcenter.ms", "firebase.io", "crashlytics.com"], "action": "reject" },
+            { "rule_set": ["geosite-category-ads-all", "geosite-category-ads-all-adguard"], "action": "reject" }
+        ],
+        "rule_set": [
+            {
+                "type": "remote",
+                "tag": "geosite-category-ads-all",
+                "url": "https://github.com/Yuu518/sing-box-rules/raw/refs/heads/rule_set/rule_set_site/category-ads-all.srs",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            },
+            {
+                "type": "remote",
+                "tag": "geosite-category-ads-all-adguard",
+                "url": "https://github.com/Yuu518/sing-box-rules/raw/refs/heads/rule_set/rule_set_site/category-ads-all-adguard.srs",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            }
+        ],
+        "final": "direct",
+        "default_domain_resolver": "dnscrypt-proxy-doh",
+        "auto_detect_interface": true
+    }
+}
