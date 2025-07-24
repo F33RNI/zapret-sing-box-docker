@@ -61,8 +61,8 @@ mkdir -p "$_LOGS_DIR_INT"
 chmod 777 "$_LOGS_DIR_INT"
 
 # Start dnscrypt-proxy
-cp /etc/resolv.conf /etc/resolv.conf.old
-cp /etc/resolv.conf.override /etc/resolv.conf
+#cp /etc/resolv.conf /etc/resolv.conf.old
+#cp /etc/resolv.conf.override /etc/resolv.conf
 ln -sf "$_DNSCRYPT_LOG_FILE" /var/log/dnscrypt-proxy.err
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service start && sleep 3
 

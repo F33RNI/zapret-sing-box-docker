@@ -39,7 +39,7 @@ sleep 1
 
 # Restart dnscrypt-proxy and wait a bit
 echo "Restarting dnscrypt-proxy"
-cp /etc/resolv.conf.override /etc/resolv.conf
+#cp /etc/resolv.conf.override /etc/resolv.conf
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
 sleep 3
 

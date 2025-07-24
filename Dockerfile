@@ -73,7 +73,7 @@ RUN DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical apt-get -y update &&
 # Install dnscrypt-proxy
 COPY ${DNSCRYPT_DIR} ${_DNSCRYPT_DIR_INT}
 WORKDIR ${_DNSCRYPT_DIR_INT}
-RUN /usr/bin/env bash -c 'echo -e "nameserver 127.0.0.1\nnameserver ::1\noptions edns0" >/etc/resolv.conf.override'
+#RUN /usr/bin/env bash -c 'echo -e "nameserver 127.0.0.1\nnameserver ::1\noptions edns0" >/etc/resolv.conf.override'
 RUN mkdir -p $(dirname "$_DNSCRYPT_CONFIG_FILE_INT")
 RUN ln -sf "$_DNSCRYPT_CONFIG_FILE" "$_DNSCRYPT_CONFIG_FILE_INT"
 RUN "./dnscrypt-proxy" -config "$_DNSCRYPT_CONFIG_FILE_INT" -service install
