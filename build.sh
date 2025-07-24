@@ -242,6 +242,7 @@ check_copy_config_file "$ZAPRET_DIR/config.default" "$ZAPRET_CONFIG_FILE"
 # Build the image
 echo -e "\nBuilding image"
 if ! docker build \
+    --force-rm --progress=plain \
     --build-arg DNSCRYPT_DIR="$DNSCRYPT_DIR" \
     --build-arg SING_BOX_DIR="$SING_BOX_DIR" \
     --build-arg ZAPRET_DIR="$ZAPRET_DIR" \
