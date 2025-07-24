@@ -42,6 +42,9 @@ if [ -z "$PORTS" ] ||
     exit 1
 fi
 
+# Specify nd argument to this script to not use -d when starting the container
+if [ "$1" = "nd" ] || [ "$1" = "nodetach" ] || [ "$1" = "no-detach" ]; then _no_detach=true; fi
+
 # Build port arguments
 ports_arg="-p $(echo "$PORTS" | awk '{$1=$1};1' | sed -r 's/ +/ -p /g')"
 echo "Ports: $ports_arg"
@@ -59,6 +62,8 @@ logs_dir_abs=$(readlink -f "$LOGS_DIR")
 mkdir -p "$lists_dir_abs"
 
 # Start the container
+run_type=()
+if [ "$_no_detach" != true ]; then run_type+=("-d"); fi
 echo -e "\nStarting container"
 if ! docker run \
     --cap-add NET_RAW \
@@ -71,7 +76,7 @@ if ! docker run \
     --volume "${lists_dir_abs}:${_LISTS_DIR_INT}" \
     --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
     --name "zapret-sing-box-docker" \
-    -d "f33rni/zapret-sing-box-docker"; then
+    ${run_type[@]} "f33rni/zapret-sing-box-docker"; then
     echo -e "\nERROR: Unable to start container"
     exit 1
 fi
