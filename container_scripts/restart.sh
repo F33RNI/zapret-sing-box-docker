@@ -32,15 +32,16 @@ if [[ "$container" != "docker" ]]; then
     exit 126
 fi
 
+# Restart zapret
+echo "Restarting zapret"
+"$_ZAPRET_DIR_INT/init.d/sysv/zapret" restart | tee -a "$_ZAPRET_LOG_FILE"
+sleep 1
+
 # Restart dnscrypt-proxy and wait a bit
 echo "Restarting dnscrypt-proxy"
 cp /etc/resolv.conf.override /etc/resolv.conf
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
 sleep 3
-
-# Restart zapret
-echo "Restarting zapret"
-"$_ZAPRET_DIR_INT/init.d/sysv/zapret" restart | tee -a "$_ZAPRET_LOG_FILE"
 
 # Send SIGTERM to sing-box to restart it
 sing_box_pid=$(pidof "sing-box")
