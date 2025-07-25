@@ -42,14 +42,14 @@
     ],
     "outbounds": [
         { "type": "direct", "tag": "direct" },
-        { "type": "direct", "tag": "direct-local", "domain_resolver": "local" },
-        { "type": "block", "tag": "block" }
+        { "type": "direct", "tag": "direct-local", "domain_resolver": "local" }
     ],
     "route": {
         "rules": [
             { "action": "sniff" },
             { "protocol": "dns", "action": "hijack-dns" },
             { "ip_is_private": true, "action": "reject" },
+            { "ip_cidr": ["127.0.0.1/8"], "action": "reject" },
             { "ip_cidr": ["10.0.0.0/24", "192.168.0.0/16"], "action": "reject" },
             { "domain": ["appcenter.ms", "firebase.io", "crashlytics.com"], "action": "reject" },
             { "rule_set": ["geosite-category-ads-all", "geosite-firebase"], "action": "reject" },
