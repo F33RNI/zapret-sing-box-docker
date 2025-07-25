@@ -33,6 +33,10 @@ cd zapret-sing-box-docker
 
 All configs are located in `configs/` dir
 
+- sing-box official documentation: <https://sing-box.sagernet.org/configuration/>
+- dnscrypt-proxy official documentation: <https://github.com/DNSCrypt/dnscrypt-proxy/wiki/Configuration>
+- zapret official documentation: <https://github.com/bol-van/zapret?tab=readme-ov-file#nfqws>
+
 Use provided `zapret-discord-youtube-rules-converter.sh` script to fetch and parse rules from
 <https://github.com/Flowseal/zapret-discord-youtube> and edit `configs/zapret.conf` accordingly
 
