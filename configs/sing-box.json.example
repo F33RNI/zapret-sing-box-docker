@@ -1,7 +1,11 @@
 {
+    // Logs redirected to the file by container's sript, so don't specify any file here
     "log": { "disabled": false, "level": "info", "timestamp": true },
+
+    // DNS servers
     "dns": {
         "servers": [
+            // dnscrypt-proxy DoH (sing-box version >= 1.12.0)
             {
                 "type": "https",
                 "tag": "dnscrypt-proxy-doh",
@@ -14,21 +18,31 @@
                     "insecure": true
                 }
             },
+
+            // dnscrypt-proxy normal UDP
             {
                 "type": "udp",
                 "tag": "dnscrypt-proxy-udp",
                 "server": "127.0.0.1",
                 "server_port": 53
             },
+
+            // System DNS
             { "type": "local", "tag": "local" }
         ],
+
         "strategy": "prefer_ipv4",
+
+        // Disable cache because dnscrypt-proxy handles it
         "disable_cache": true,
         "disable_expire": false,
         "independent_cache": false,
         "reverse_mapping": false
     },
+
+    // This is how you can connect to the container. Please don't forget to specify ports to the ./start script
     "inbounds": [
+        // SOCKS4 + SOCKS5 + HTTP proxy
         {
             "type": "mixed",
             "tag": "mixed-in",
@@ -40,18 +54,34 @@
             "udp_fragment": false
         }
     ],
+
+    // Direct means via zapret
     "outbounds": [
+        // dnscrypt-proxy DoH DNS
         { "type": "direct", "tag": "direct" },
+
+        // System DNS
         { "type": "direct", "tag": "direct-local", "domain_resolver": "local" }
     ],
+
+    // Sniff DNS, block ads, some tracking and local net, use system DNS for local sites
     "route": {
         "rules": [
+            // DNS
             { "action": "sniff" },
             { "protocol": "dns", "action": "hijack-dns" },
+
+            // Localhost
             { "ip_cidr": ["127.0.0.0/8"], "action": "reject" },
+
+            // Localnet
             { "ip_cidr": ["10.0.0.0/24", "192.168.0.0/16"], "action": "reject" },
+
+            // ADs and analytics
             { "domain": ["appcenter.ms", "firebase.io", "crashlytics.com"], "action": "reject" },
             { "rule_set": ["geosite-category-ads-all", "geosite-firebase"], "action": "reject" },
+
+            // Use system DNS for these
             {
                 "rule_set": [
                     "geosite-category-ru",
@@ -67,6 +97,7 @@
             }
         ],
         "rule_set": [
+            // Ads and tracking
             {
                 "type": "remote",
                 "tag": "geosite-category-ads-all",
@@ -83,6 +114,8 @@
                 "download_detour": "direct",
                 "update_interval": "1d"
             },
+
+            // Country sites
             {
                 "type": "remote",
                 "tag": "geosite-category-ru",
@@ -115,6 +148,8 @@
                 "download_detour": "direct",
                 "update_interval": "1d"
             },
+
+            // IPs
             {
                 "type": "remote",
                 "tag": "geoip-ru",
