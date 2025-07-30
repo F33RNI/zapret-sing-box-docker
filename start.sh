@@ -34,9 +34,7 @@ if [ -z "$PORTS" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$SING_BOX_CONFIG_FILE" ] ||
     [ -z "$ZAPRET_CONFIG_FILE" ] ||
-    [ -z "$LISTS_DIR" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
-    [ -z "$_LISTS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
     exit 1
@@ -57,9 +55,7 @@ echo "Stopping and removing old containers"
 dnscrypt_config_file_abs=$(readlink -f "$DNSCRYPT_CONFIG_FILE")
 sing_box_config_file_abs=$(readlink -f "$SING_BOX_CONFIG_FILE")
 zapret_config_file_abs=$(readlink -f "$ZAPRET_CONFIG_FILE")
-lists_dir_abs=$(readlink -f "$LISTS_DIR")
 logs_dir_abs=$(readlink -f "$LOGS_DIR")
-mkdir -p "$lists_dir_abs"
 
 # Start the container
 run_type=()
@@ -73,7 +69,6 @@ if ! docker run \
     --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml" \
     --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json" \
     --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf" \
-    --volume "${lists_dir_abs}:${_LISTS_DIR_INT}" \
     --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
     --name "zapret-sing-box-docker" \
     ${run_type[@]} "f33rni/zapret-sing-box-docker"; then

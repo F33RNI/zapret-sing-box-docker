@@ -68,12 +68,10 @@ if [ -z "$DOCKERFILE" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$SING_BOX_CONFIG_FILE" ] ||
     [ -z "$ZAPRET_CONFIG_FILE" ] ||
-    [ -z "$LISTS_DIR" ] ||
     [ -z "$DNSCRYPT_DIR" ] ||
     [ -z "$SING_BOX_DIR" ] ||
     [ -z "$ZAPRET_DIR" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
-    [ -z "$_LISTS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
     exit 1

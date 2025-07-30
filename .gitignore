@@ -4,4 +4,4 @@
 /logs
 config.*
 /zapret-discord-youtube*/
-zapret-discord-youtube-rules-converter.log
+zapret-discord-youtube-rules-converter.log*

@@ -32,13 +32,6 @@ ZAPRET_DIR_INT="/opt/zapret"
 
 LOG_FILE="zapret-discord-youtube-rules-converter.log"
 
-# Load environment variables and perform basic check
-source .env
-if [ -z "$LISTS_DIR" ] || [ -z "$_LISTS_DIR_INT" ]; then
-    echo "ERROR: Some environment variables are empty / not specified"
-    exit 1
-fi
-
 # Parses NFQWS_OPT from .bat files
 parse_bat() {
     local bat_path="$1"
@@ -49,6 +42,9 @@ parse_bat() {
     # Extract lines with --filter-
     filtered_lines=$(echo "$cleaned" | grep -oP -- '--filter-[^\n]+')
 
+    # Ignore lines with list-general.txt
+    filtered_lines=$(echo "$filtered_lines" | grep -v 'list-general.txt')
+
     # Exit if no rules found
     if [ -z "$filtered_lines" ]; then exit 0; fi
 
@@ -58,8 +54,11 @@ parse_bat() {
     # Replace --ipset="%LISTS%ipset-all.txt" with <HOSTLIST>
     filtered_lines=$(echo "$filtered_lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
 
-    # Replace %BIN% and %LISTS%
-    filtered_lines=$(echo "$filtered_lines" | sed "s|%BIN%|$ZAPRET_DIR_INT/files/fake/|g; s|%LISTS%|$_LISTS_DIR_INT/|g")
+    # Replace --ipset="%LISTS%list-general.txt" with <HOSTLIST>
+    #filtered_lines=$(echo "$filtered_lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+
+    # Replace %BIN%
+    filtered_lines=$(echo "$filtered_lines" | sed "s|%BIN%|$ZAPRET_DIR_INT/files/fake/|g")
 
     # Trim trailing spaces from all lines
     filtered_lines=$(echo "$filtered_lines" | sed 's/[[:space:]]\+$//')
@@ -82,11 +81,6 @@ git clone "$REPO_URL" "$TEMP_DIR"
 # Save repo version for comments
 git_head=$(git -C "$TEMP_DIR" rev-parse --short HEAD)
 
-# Copy ip lists
-mkdir -p "$LISTS_DIR"
-echo -e "\n$TEMP_DIR/lists -> $LISTS_DIR"
-cp -a "$TEMP_DIR/lists/." "$LISTS_DIR"
-
 # Parse rules
 echo -e "\nParsing rules..."
 echo "1. Please set \`NFQWS_ENABLE\` in zapret.conf to \`1\`"
@@ -95,8 +89,6 @@ echo "3. Please set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,50000-50100\`"
 echo "4. Copy parsed value of \`NFQWS_OPT\` from some script below into \`NFQWS_OPT\` in zapret.conf"
 echo -e "--------------------------------------------------------------------------------\n"
 export ZAPRET_DIR_INT="$ZAPRET_DIR_INT"
-export LISTS_DIR="$LISTS_DIR"
-export _LISTS_DIR_INT="$_LISTS_DIR_INT"
 export git_head="$git_head"
 export -f parse_bat
 find "$TEMP_DIR" -type f -name "*.bat" -exec bash -c 'parse_bat "$0"' {} \; | tee "$LOG_FILE"
