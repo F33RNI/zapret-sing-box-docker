@@ -76,6 +76,7 @@ WORKDIR ${_DNSCRYPT_DIR_INT}
 #RUN /usr/bin/env bash -c 'echo -e "nameserver 127.0.0.1\nnameserver ::1\noptions edns0" >/etc/resolv.conf.override'
 RUN mkdir -p $(dirname "$_DNSCRYPT_CONFIG_FILE_INT")
 RUN ln -sf "$_DNSCRYPT_CONFIG_FILE" "$_DNSCRYPT_CONFIG_FILE_INT"
+RUN mkdir -p "/etc/init.d"
 RUN "./dnscrypt-proxy" -config "$_DNSCRYPT_CONFIG_FILE_INT" -service install
 
 # Install sing-box
