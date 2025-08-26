@@ -40,6 +40,16 @@ All configs are located in `configs/` dir
 Use provided `zapret-discord-youtube-rules-converter.sh` script to fetch and parse rules from
 <https://github.com/Flowseal/zapret-discord-youtube> and edit `configs/zapret.conf` accordingly
 
+Or you can start the container (by calling `start.sh`) and use `zapret-discord-youtube-rules-converter.sh` with `test` argument to test parsed rules
+
+```shell
+# Start the container
+TZ="Etc/UTC" ./start.sh
+
+# Parse and test ALL rules from <https://github.com/Flowseal/zapret-discord-youtube> using custom URL
+TEST_URL="https://rr1---sn-aigzrnld.googlevideo.com/videoplayback" ./zapret-discord-youtube-rules-converter.sh test
+```
+
 #### 5. Provide ports and start the container
 
 ```shell
