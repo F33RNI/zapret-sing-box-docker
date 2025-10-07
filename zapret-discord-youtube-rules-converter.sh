@@ -109,7 +109,7 @@ parse_test_bat() {
 
     # Reload and wait
     echo "Calling reload script..."
-    bash "$RELOAD_SCRIPT" "$LOG_FILE" | tee -a "$LOG_FILE" >/dev/null
+    bash "$RELOAD_SCRIPT" >/dev/null
 
     # Test
     echo "Testing $TEST_URL"
@@ -162,7 +162,7 @@ if [ "$_test" == true ]; then
 
         # Reload
         echo "Calling reload script before exit... Please wait"
-        bash "$RELOAD_SCRIPT" "$LOG_FILE" | tee -a "$LOG_FILE" >/dev/null
+        bash "$RELOAD_SCRIPT" >/dev/null
         echo -e "\nFinished!"
 
         exit 0
