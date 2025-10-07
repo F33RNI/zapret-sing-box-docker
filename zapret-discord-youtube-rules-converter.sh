@@ -105,11 +105,11 @@ parse_test_bat() {
     # Write test config
     echo "Writing test config -> $ZAPRET_CONFIG"
     config=$(sed 's|{NFQWS_OPT_PLACEHOLDER}|'"${nfqws_opt}"'|' "$TEST_CONFIG")
-    echo "$config" >"$ZAPRET_CONFIG"
+    echo "$config" | tee "$ZAPRET_CONFIG" >/dev/null
 
     # Reload and wait
     echo "Calling reload script..."
-    bash "$RELOAD_SCRIPT" "$LOG_FILE" >>"$LOG_FILE"
+    bash "$RELOAD_SCRIPT" "$LOG_FILE" | tee -a "$LOG_FILE" >/dev/null
 
     # Test
     echo "Testing $TEST_URL"
@@ -119,10 +119,6 @@ parse_test_bat() {
     else
         echo "Not working ˙◠˙"
     fi
-
-    # Remove config
-    echo "Removing test config $ZAPRET_CONFIG"
-    rm "$ZAPRET_CONFIG"
 }
 
 # Clone repo
@@ -153,19 +149,20 @@ if [ "$_test" == true ]; then
     # Copy current config
     if [ -f "$ZAPRET_CONFIG" ]; then
         echo "Saving current config file $ZAPRET_CONFIG -> $ZAPRET_CONFIG.bak"
-        mv "$ZAPRET_CONFIG" "${ZAPRET_CONFIG}.bak"
+        cp "$ZAPRET_CONFIG" "${ZAPRET_CONFIG}.bak"
     fi
 
     cleanup() {
         # Restore original config file
         if [ -f "${ZAPRET_CONFIG}.bak" ]; then
             echo "Restoring config file $ZAPRET_CONFIG.bak -> $ZAPRET_CONFIG"
-            mv "${ZAPRET_CONFIG}.bak" "$ZAPRET_CONFIG"
+            cat "${ZAPRET_CONFIG}.bak" | tee "$ZAPRET_CONFIG" >/dev/null
+            rm "${ZAPRET_CONFIG}.bak"
         fi
 
         # Reload
         echo "Calling reload script before exit... Please wait"
-        bash "$RELOAD_SCRIPT" "$LOG_FILE" >>"$LOG_FILE"
+        bash "$RELOAD_SCRIPT" "$LOG_FILE" | tee -a "$LOG_FILE" >/dev/null
         echo -e "\nFinished!"
 
         exit 0
@@ -190,8 +187,8 @@ if [ "$_test" == true ]; then
 else
     echo -e "\nParsing rules..."
     echo "1. Please set \`NFQWS_ENABLE\` in zapret.conf to \`1\`"
-    echo "2. Please set \`NFQWS_PORTS_TCP\` in zapret.conf to \`80,443\`"
-    echo "3. Please set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,50000-50100\`"
+    echo "2. Please set \`NFQWS_PORTS_TCP\` in zapret.conf to \`80,443,2053,2083,2087,2096,8443,1024-65535\`"
+    echo "3. Please set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,1024-65535,19294-19344,50000-50100\`"
     echo "4. Copy parsed value of \`NFQWS_OPT\` from some script below into \`NFQWS_OPT\` in zapret.conf"
     echo -e "--------------------------------------------------------------------------------\n"
     export ZAPRET_DIR_INT="$ZAPRET_DIR_INT"
