@@ -49,8 +49,14 @@ parse_bat() {
     # Extract lines with --filter-
     filtered_lines=$(echo "$cleaned" | grep -oP -- '--filter-[^\n]+')
 
-    # Ignore lines with list-general.txt
-    filtered_lines=$(echo "$filtered_lines" | grep -v 'list-general.txt')
+    # Ignore lines with hostlist="%LISTS%
+    filtered_lines=$(echo "$filtered_lines" | grep -v 'hostlist="%LISTS%')
+
+    # Remove exclude hostlist
+    filtered_lines=$(echo "$filtered_lines" | sed 's/--hostlist-exclude="%LISTS%list-.*txt" *//g')
+
+    # Remove exclude ipset
+    filtered_lines=$(echo "$filtered_lines" | sed 's/--ipset-exclude="%LISTS%ipset-.*txt" *//g')
 
     # Exit if no rules found
     if [ -z "$filtered_lines" ]; then exit 0; fi
