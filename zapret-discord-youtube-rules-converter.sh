@@ -127,6 +127,18 @@ parse_test_bat() {
     fi
 }
 
+# Downloads .bin file from https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/
+download_fake_file() {
+    local filename="$1"
+    if [ -z "$ZAPRET_DIR" ]; then
+        echo "ERROR: ZAPRET_DIR environment variable is empty / not specified"
+        exit 1
+    fi
+    echo "Downloading $filename..."
+    curl -o "${ZAPRET_DIR}/files/fake/${filename}" \
+        -L "https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/${filename}"
+}
+
 # Clone repo
 if [ -d "$TEMP_DIR" ]; then
     echo "$TEMP_DIR already exists! Deleting..."
@@ -139,6 +151,11 @@ git_head=$(git -C "$TEMP_DIR" rev-parse --short HEAD)
 
 # Parse and test rules
 if [ "$_test" == true ]; then
+    # Download fake files
+    source .env
+    download_fake_file "tls_clienthello_4pda_to.bin"
+    download_fake_file "tls_clienthello_max_ru.bin"
+
     # Check if container is running
     container_id=$(docker ps | grep zapret-sing-box-docker | tail -n1 | awk '{print $1}')
     if [ -z "$container_id" ]; then
