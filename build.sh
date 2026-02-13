@@ -202,6 +202,20 @@ check_download() {
     echo "$target_dir downloaded successfully"
 }
 
+# Downloads .bin file from https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/
+# Args:
+#   1: Name of file
+download_fake_file() {
+    local filename="$1"
+    if [ -z "$ZAPRET_DIR" ]; then
+        echo "ERROR: ZAPRET_DIR environment variable is empty / not specified"
+        exit 1
+    fi
+    echo "Downloading $filename..."
+    curl -o "${ZAPRET_DIR}/files/fake/${filename}" \
+        -L "https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/${filename}"
+}
+
 # ################# #
 # Download programs #
 # ################# #
@@ -223,6 +237,11 @@ release_json=$(curl -s https://api.github.com/repos/bol-van/zapret/releases/late
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -v "openwrt")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
+
+# Download fake files
+source .env
+download_fake_file "tls_clienthello_4pda_to.bin"
+download_fake_file "tls_clienthello_max_ru.bin"
 
 # ########### #
 # Build image #
