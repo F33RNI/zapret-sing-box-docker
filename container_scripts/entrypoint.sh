@@ -64,7 +64,7 @@ chmod 777 "$_LOGS_DIR_INT"
 #cp /etc/resolv.conf /etc/resolv.conf.old
 #cp /etc/resolv.conf.override /etc/resolv.conf
 ln -sf "$_DNSCRYPT_LOG_FILE" /var/log/dnscrypt-proxy.err
-"$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service start && sleep 3
+"$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service start && sleep 5
 
 # Start zapret
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
