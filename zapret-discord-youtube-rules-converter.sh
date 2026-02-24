@@ -63,6 +63,8 @@ parse_bat() {
 
     # Replace %GameFilter%
     filtered_lines=$(echo "$filtered_lines" | sed "s|=%GameFilter%|=1024-65535|g" | sed "s|,%GameFilter%|,1024-65535|g")
+    filtered_lines=$(echo "$filtered_lines" | sed "s|=%GameFilterTCP%|=1024-65535|g" | sed "s|,%GameFilterTCP%|,1024-65535|g")
+    filtered_lines=$(echo "$filtered_lines" | sed "s|=%GameFilterUDP%|=1024-65535|g" | sed "s|,%GameFilterUDP%|,1024-65535|g")
 
     # Replace --ipset="%LISTS%ipset-all.txt" with <HOSTLIST>
     filtered_lines=$(echo "$filtered_lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
