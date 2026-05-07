@@ -242,6 +242,7 @@ check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 source .env
 download_fake_file "tls_clienthello_4pda_to.bin"
 download_fake_file "tls_clienthello_max_ru.bin"
+download_fake_file "quic_initial_dbankcloud_ru.bin"
 
 # ########### #
 # Build image #
