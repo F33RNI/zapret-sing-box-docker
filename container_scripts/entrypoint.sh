@@ -60,9 +60,14 @@ delete_old_log "$_ZAPRET_LOG_FILE"
 mkdir -p "$_LOGS_DIR_INT"
 chmod 777 "$_LOGS_DIR_INT"
 
+# Replace resolv.conf
+if [ -f "/etc/resolv.conf.override" ]; then
+    echo "Replacing resolv.conf"
+    [ ! -f "/etc/resolv.conf.old" ] && cp /etc/resolv.conf /etc/resolv.conf.old
+    cp /etc/resolv.conf.override /etc/resolv.conf
+fi
+
 # Start dnscrypt-proxy
-#cp /etc/resolv.conf /etc/resolv.conf.old
-#cp /etc/resolv.conf.override /etc/resolv.conf
 ln -sf "$_DNSCRYPT_LOG_FILE" /var/log/dnscrypt-proxy.err
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service start && sleep 5
 
