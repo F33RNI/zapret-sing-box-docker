@@ -213,7 +213,7 @@ download_fake_file() {
         exit 1
     fi
     echo "Downloading $filename..."
-    curl -o "${$ZAPRET_FAKE_DIR}/${filename}" \
+    curl -o "${ZAPRET_FAKE_DIR}/${filename}" \
         -L "https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/${filename}"
 }
 
