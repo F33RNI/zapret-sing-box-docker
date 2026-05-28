@@ -26,7 +26,7 @@
 # This script downloads sing-box, zapret and dnscrypt-proxy, builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-_VERSION="1.0.dev"
+_VERSION="1.1"
 
 # Print some cool looking ascii art :)
 echo "                ,                     .               .      .        "
@@ -71,6 +71,7 @@ if [ -z "$DOCKERFILE" ] ||
     [ -z "$DNSCRYPT_DIR" ] ||
     [ -z "$SING_BOX_DIR" ] ||
     [ -z "$ZAPRET_DIR" ] ||
+    [ -z "$ZAPRET_FAKE_DIR" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
@@ -212,7 +213,7 @@ download_fake_file() {
         exit 1
     fi
     echo "Downloading $filename..."
-    curl -o "${ZAPRET_DIR}/files/fake/${filename}" \
+    curl -o "${$ZAPRET_FAKE_DIR}/${filename}" \
         -L "https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/${filename}"
 }
 
@@ -240,9 +241,10 @@ check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 
 # Download fake files
 source .env
+download_fake_file "quic_initial_dbankcloud_ru.bin"
+download_fake_file "stun.bin"
 download_fake_file "tls_clienthello_4pda_to.bin"
 download_fake_file "tls_clienthello_max_ru.bin"
-download_fake_file "quic_initial_dbankcloud_ru.bin"
 
 # ########### #
 # Build image #

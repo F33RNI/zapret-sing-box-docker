@@ -31,6 +31,7 @@ if [ "$1" = "test" ]; then _test=true; fi
 
 REPO_URL="https://github.com/Flowseal/zapret-discord-youtube.git"
 TEMP_DIR="zapret-discord-youtube_temp"
+LISTS_DIR=${LISTS_DIR:-"$TEMP_DIR/lists"}
 ZAPRET_DIR_INT="/opt/zapret"
 ZAPRET_CONFIG=${ZAPRET_CONFIG:-"configs/zapret.conf"}
 TEST_CONFIG=${TEST_CONFIG:-"configs/zapret.conf.test"}
@@ -39,54 +40,127 @@ TEST_URL=${TEST_URL:-"https://youtube.com"}
 
 LOG_FILE="zapret-discord-youtube-rules-converter.log"
 
+# Reads lists file and converts into value for --hostlist-domains= / --ipset-ip= arguments
+expand_list_file() {
+    local _file="$1"
+
+    # Remove %LISTS% prefix
+    _file="${_file//%LISTS%/}"
+
+    # Read file safely
+    if [[ ! -f "$LISTS_DIR/$_file" ]]; then
+        echo ""
+        return
+    fi
+
+    # Convert _lines into comma-separated + ignore empty / comments + trim empty _lines
+    paste -sd"," "$LISTS_DIR/$_file" | grep -v "^\s*$" | grep -v "^\s*#" | sed 's/,,*/,/g; s/^,//; s/,$//'
+}
+
 # Parses NFQWS_OPT from .bat files
 parse_bat() {
     local bat_path="$1"
 
     # Remove ending ^
-    cleaned=$(sed ':a;N;$!ba;s/\^/ /g' "$bat_path")
+    local _cleaned=$(sed ':a;N;$!ba;s/\^/ /g' "$bat_path")
 
     # Extract lines with --filter-
-    filtered_lines=$(echo "$cleaned" | grep -oP -- '--filter-[^\n]+')
-
-    # Ignore lines with hostlist="%LISTS%
-    filtered_lines=$(echo "$filtered_lines" | grep -v 'hostlist="%LISTS%')
-
-    # Remove exclude hostlist
-    filtered_lines=$(echo "$filtered_lines" | sed 's/--hostlist-exclude="%LISTS%list-.*txt" *//g')
-
-    # Remove exclude ipset
-    filtered_lines=$(echo "$filtered_lines" | sed 's/--ipset-exclude="%LISTS%ipset-.*txt" *//g')
+    local _lines=$(echo "$_cleaned" | grep -oP -- '--filter-[^\n]+')
 
     # Exit if no rules found
-    if [ -z "$filtered_lines" ]; then exit 0; fi
+    if [ -z "$_lines" ]; then exit 0; fi
 
     # Replace %GameFilter%
-    filtered_lines=$(echo "$filtered_lines" | sed "s|=%GameFilter%|=1024-65535|g" | sed "s|,%GameFilter%|,1024-65535|g")
-    filtered_lines=$(echo "$filtered_lines" | sed "s|=%GameFilterTCP%|=1024-65535|g" | sed "s|,%GameFilterTCP%|,1024-65535|g")
-    filtered_lines=$(echo "$filtered_lines" | sed "s|=%GameFilterUDP%|=1024-65535|g" | sed "s|,%GameFilterUDP%|,1024-65535|g")
+    _lines=$(echo "$_lines" | sed "s|=%GameFilter%|=1024-65535|g" | sed "s|,%GameFilter%|,1024-65535|g")
+    _lines=$(echo "$_lines" | sed "s|=%GameFilterTCP%|=1024-65535|g" | sed "s|,%GameFilterTCP%|,1024-65535|g")
+    _lines=$(echo "$_lines" | sed "s|=%GameFilterUDP%|=1024-65535|g" | sed "s|,%GameFilterUDP%|,1024-65535|g")
 
     # Replace --ipset="%LISTS%ipset-all.txt" with <HOSTLIST>
-    filtered_lines=$(echo "$filtered_lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
+    _lines=$(echo "$_lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
 
     # Replace --ipset="%LISTS%list-general.txt" with <HOSTLIST>
-    #filtered_lines=$(echo "$filtered_lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+    #_lines=$(echo "$_lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+
+    # Proper lists replacement with expanding
+    # 1. Read each line -> loop through arguments
+    # 2. If arguments contains list -> check if file exists -> expand it, if not, remove argument entirely
+    # 3. Keep other arguments intact
+    local _lines_lists_replaced=""
+    while IFS= read -r _line; do
+        [[ -z "$_line" ]] && continue
+
+        local _line_rebuilt=""
+
+        for _arg in $_line; do
+            # hostlist
+            if [[ "$_arg" =~ ^--hostlist=\"%LISTS%([^\"]+)\"$ ]]; then
+                _file="${BASH_REMATCH[1]}"
+                _list="$(expand_list_file "$_file")"
+                if [[ -n "$_list" ]]; then
+                    _line_rebuilt+=" --hostlist-domains=$_list"
+                fi
+                continue
+            fi
+
+            # hostlist-exclude
+            if [[ "$_arg" =~ ^--hostlist-exclude=\"%LISTS%([^\"]+)\"$ ]]; then
+                _file="${BASH_REMATCH[1]}"
+                _list="$(expand_list_file "$_file")"
+                if [[ -n "$_list" ]]; then
+                    _line_rebuilt+=" --hostlist-exclude-domains=$_list"
+                fi
+                continue
+            fi
+
+            # ipset
+            if [[ "$_arg" =~ ^--ipset=\"%LISTS%([^\"]+)\"$ ]]; then
+                _file="${BASH_REMATCH[1]}"
+                _list="$(expand_list_file "$_file")"
+                if [[ -n "$_list" ]]; then
+                    _line_rebuilt+=" --ipset-ip=$_list"
+                fi
+                continue
+            fi
+
+            # ipset-exclude
+            if [[ "$_arg" =~ ^--ipset-exclude=\"%LISTS%([^\"]+)\"$ ]]; then
+                _file="${BASH_REMATCH[1]}"
+                _list="$(expand_list_file "$_file")"
+                if [[ -n "$_list" ]]; then
+                    _line_rebuilt+=" --ipset-exclude-ip=$_list"
+                fi
+                continue
+            fi
+
+            # Unchanged
+            _line_rebuilt+=" $_arg"
+
+        done
+
+        # Append without leading space + keep new line
+        _lines_lists_replaced+="${_line_rebuilt# }"$'\n'
+
+    done <<<"$_lines"
+    _lines="$_lines_lists_replaced"
 
     # Replace %BIN%
-    filtered_lines=$(echo "$filtered_lines" | sed "s|%BIN%|$ZAPRET_DIR_INT/files/fake/|g")
+    _lines=$(echo "$_lines" | sed "s|%BIN%|$ZAPRET_DIR_INT/files/fake/|g")
 
-    # Trim trailing spaces from all lines
-    filtered_lines=$(echo "$filtered_lines" | sed 's/[[:space:]]\+$//')
+    # Trim trailing spaces from all _lines
+    _lines=$(echo "$_lines" | sed 's/[[:space:]]\+$//')
+
+    # Replace double spaces
+    _lines=$(echo "$_lines" | sed 's/  */ /g')
 
     # If last line ends with --new, remove it
-    filtered_lines=$(echo "$filtered_lines" | sed '$s/ --new$//')
+    _lines=$(echo "$_lines" | sed '$s/ --new$//')
 
     # Output final result
     if [ "$_test" == true ]; then
-        echo "${filtered_lines}"
+        echo "${_lines}"
     else
         echo "# Parsed from $(basename "$bat_path") (Flowseal/zapret-discord-youtube @ $git_head)"
-        echo -e "NFQWS_OPT='\n${filtered_lines}\n'\n"
+        echo -e "NFQWS_OPT='\n${_lines}\n'\n"
     fi
 }
 
@@ -105,9 +179,9 @@ parse_test_bat() {
 
     # Log
     echo -e "\n\nParsing and testing $(basename "$bat_path") (Flowseal/zapret-discord-youtube @ $git_head)..."
-    echo -e "NFQWS_OPT='\n${nfqws_opt}\n'"
+    #echo -e "NFQWS_OPT='\n${nfqws_opt}\n'"
 
-    # Rewrite NFQWS_OPT without new lines
+    # Rewrite NFQWS_OPT without new _lines
     nfqws_opt="${nfqws_opt//$'\n'/$' '}"
 
     # Write test config
@@ -129,12 +203,12 @@ parse_test_bat() {
     fi
 }
 
-# Clone repo
-if [ -d "$TEMP_DIR" ]; then
-    echo "$TEMP_DIR already exists! Deleting..."
-    rm -rf "$TEMP_DIR"
-fi
-git clone "$REPO_URL" "$TEMP_DIR"
+# # Clone repo
+# if [ -d "$TEMP_DIR" ]; then
+#     echo "$TEMP_DIR already exists! Deleting..."
+#     rm -rf "$TEMP_DIR"
+# fi
+# git clone "$REPO_URL" "$TEMP_DIR"
 
 # Save repo version for comments
 git_head=$(git -C "$TEMP_DIR" rev-parse --short HEAD)
@@ -177,18 +251,15 @@ if [ "$_test" == true ]; then
     }
 
     echo -e "\nParsing and testing rules..."
-    export LOG_FILE="$LOG_FILE"
-    export ZAPRET_DIR_INT="$ZAPRET_DIR_INT"
-    export git_head="$git_head"
-    export ZAPRET_CONFIG="$ZAPRET_CONFIG"
-    export TEST_CONFIG="$TEST_CONFIG"
-    export RELOAD_SCRIPT="$RELOAD_SCRIPT"
-    export TEST_URL="$TEST_URL"
+    export LOG_FILE LISTS_DIR ZAPRET_DIR_INT git_head ZAPRET_CONFIG TEST_CONFIG RELOAD_SCRIPT TEST_UR
     export _test=true
+    export -f expand_list_file
     export -f parse_bat
     export -f parse_test_bat
     trap cleanup SIGINT
-    find "$TEMP_DIR" -type f -name "*.bat" -exec bash -c 'parse_test_bat "$0"' {} \; | tee "$LOG_FILE"
+    #find "$TEMP_DIR" -type f -name "*.bat" -exec bash -c 'parse_test_bat "$0"' {} \; | tee "$LOG_FILE"
+    find "$TEMP_DIR" -type f -name "*.bat" -print0 | sort -Vz |
+        xargs -0 -I {} bash -c 'parse_test_bat "$0"' {} | tee "$LOG_FILE"
     cleanup
 
 # Just parse rules
@@ -199,12 +270,12 @@ else
     echo "3. Please set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,1024-65535,19294-19344,50000-50100\`"
     echo "4. Copy parsed value of \`NFQWS_OPT\` from some script below into \`NFQWS_OPT\` in zapret.conf"
     echo -e "--------------------------------------------------------------------------------\n"
-    export ZAPRET_DIR_INT="$ZAPRET_DIR_INT"
-    export git_head="$git_head"
+    export LISTS_DIR ZAPRET_DIR_INT git_head
+    export -f expand_list_file
     export -f parse_bat
     find "$TEMP_DIR" -type f -name "*.bat" -exec bash -c 'parse_bat "$0"' {} \; | tee "$LOG_FILE"
     echo "--------------------------------------------------------------------------------"
 fi
 
 # Delete repo
-rm -rf "$TEMP_DIR"
+# rm -rf "$TEMP_DIR"
