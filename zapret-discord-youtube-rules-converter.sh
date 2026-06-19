@@ -203,12 +203,12 @@ parse_test_bat() {
     fi
 }
 
-# # Clone repo
-# if [ -d "$TEMP_DIR" ]; then
-#     echo "$TEMP_DIR already exists! Deleting..."
-#     rm -rf "$TEMP_DIR"
-# fi
-# git clone "$REPO_URL" "$TEMP_DIR"
+# Clone repo
+if [ -d "$TEMP_DIR" ]; then
+    echo "$TEMP_DIR already exists! Deleting..."
+    rm -rf "$TEMP_DIR"
+fi
+git clone "$REPO_URL" "$TEMP_DIR"
 
 # Save repo version for comments
 git_head=$(git -C "$TEMP_DIR" rev-parse --short HEAD)
@@ -278,4 +278,4 @@ else
 fi
 
 # Delete repo
-# rm -rf "$TEMP_DIR"
+rm -rf "$TEMP_DIR"
