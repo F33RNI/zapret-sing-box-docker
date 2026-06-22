@@ -54,7 +54,8 @@ expand_list_file() {
     fi
 
     # Convert _lines into comma-separated + ignore empty / comments + trim empty _lines
-    paste -sd"," "$LISTS_DIR/$_file" | grep -v "^\s*$" | grep -v "^\s*#" | sed 's/,,*/,/g; s/^,//; s/,$//'
+    # paste -sd"," "$LISTS_DIR/$_file" | grep -v "^\s*$" | grep -v "^\s*#" | sed 's/,,*/,/g; s/^,//; s/,$//'
+    grep -vE '^\s*(#|$)' "$LISTS_DIR/$_file" | sed -z 's/\r//g' | paste -sd "," -
 }
 
 # Parses NFQWS_OPT from .bat files
