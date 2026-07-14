@@ -23,24 +23,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script parses latest rules from <https://github.com/Flowseal/zapret-discord-youtube>
-# And converts them into normal zapret NFQWS_OPT value
-
-# Specify test argument to this script to test each option
+# This script downloads and parses .bat strategies from strategies-converter-tester_strategies.txt,
+# converts them and tests if requested (see below)
+# ----> SPECIFY test ARGUMENT TO THIS SCRIPT TO TEST EACH OPTION <----
 if [ "$1" = "test" ]; then _test=true; fi
 
-REPO_URL="https://github.com/Flowseal/zapret-discord-youtube.git"
-TEMP_DIR="zapret-discord-youtube_temp"
+STRATEGIES_FILE=${STRATEGIES_FILE:-"strategies-converter-tester_strategies.txt"}
+LISTS_FILE=${LISTS_FILE:-"strategies-converter-tester_lists.txt"}
+
+TEMP_DIR=${TEMP_DIR:-"./strategies-converter-tester_tmp"}
+STRATEGIES_DIR=${STRATEGIES_DIR:-"$TEMP_DIR/strategies"}
 LISTS_DIR=${LISTS_DIR:-"$TEMP_DIR/lists"}
+
+TEST_URL=${TEST_URL:-"https://youtube.com"}
+
+LOG_FILE="strategies-converter-tester.log"
+
 ZAPRET_DIR_INT="/opt/zapret"
 ZAPRET_CONFIG=${ZAPRET_CONFIG:-"configs/zapret.conf"}
 TEST_CONFIG=${TEST_CONFIG:-"configs/zapret.conf.test"}
 RELOAD_SCRIPT=${RELOAD_SCRIPT:-"reload.sh"}
-TEST_URL=${TEST_URL:-"https://youtube.com"}
-
-LOG_FILE="zapret-discord-youtube-rules-converter.log"
 
 # Reads lists file and converts into value for --hostlist-domains= / --ipset-ip= arguments
+# Args:
+#   1: Path to list file inside $LISTS_DIR
 expand_list_file() {
     local _file="$1"
 
@@ -58,7 +64,9 @@ expand_list_file() {
     grep -vE '^\s*(#|$)' "$LISTS_DIR/$_file" | sed -z 's/\r//g' | paste -sd "," -
 }
 
-# Parses NFQWS_OPT from .bat files
+# Parses NFQWS_OPT from .bat file
+# Args:
+#   1: Path to .bat file
 parse_bat() {
     local bat_path="$1"
 
@@ -68,7 +76,7 @@ parse_bat() {
     # Extract lines with --filter-
     local _lines=$(echo "$_cleaned" | grep -oP -- '--filter-[^\n]+')
 
-    # Exit if no rules found
+    # Exit if no strategy found
     if [ -z "$_lines" ]; then exit 0; fi
 
     # Replace %GameFilter%
@@ -160,12 +168,14 @@ parse_bat() {
     if [ "$_test" == true ]; then
         echo "${_lines}"
     else
-        echo "# Parsed from $(basename "$bat_path") (Flowseal/zapret-discord-youtube @ $git_head)"
+        echo "# Parsed from $(basename "$bat_path")"
         echo -e "NFQWS_OPT='\n${_lines}\n'\n"
     fi
 }
 
-# Parses NFQWS_OPT from .bat files and tests each file
+# Parses NFQWS_OPT from .bat file and test it
+# Args:
+#   1: Path to .bat file
 parse_test_bat() {
     # Check test config file
     if [ ! -f $TEST_CONFIG ]; then
@@ -179,7 +189,7 @@ parse_test_bat() {
     if [ -z "$nfqws_opt" ]; then exit 0; fi
 
     # Log
-    echo -e "\n\nParsing and testing $(basename "$bat_path") (Flowseal/zapret-discord-youtube @ $git_head)..."
+    echo -e "\n\nParsing and testing $(basename "$bat_path")..."
     #echo -e "NFQWS_OPT='\n${nfqws_opt}\n'"
 
     # Rewrite NFQWS_OPT without new _lines
@@ -204,17 +214,72 @@ parse_test_bat() {
     fi
 }
 
-# Clone repo
-if [ -d "$TEMP_DIR" ]; then
-    echo "$TEMP_DIR already exists! Deleting..."
-    rm -rf "$TEMP_DIR"
+# Downloads (if file starts with http) or copies strategy file
+# Args:
+#   1: URL or path to file
+get_strategy_file() {
+    local _strategy_path="$1"
+    local _filename=$(basename "$_strategy_path")
+    if [[ "$_strategy_path" =~ ^https?:// ]]; then
+        echo "Downloading $_strategy_path -> ${STRATEGIES_DIR}/${_filename}..."
+        curl -o "${STRATEGIES_DIR}/${_filename}" -L "$_strategy_path"
+    elif [ -f "$_strategy_path" ]; then
+        echo "Copying $_strategy_path -> ${STRATEGIES_DIR}/${_filename}..."
+        cp "$_strategy_path" "${STRATEGIES_DIR}"
+    else
+        echo "WARNING: Unknown file: $_strategy_path. Ignoring it"
+    fi
+}
+
+# Downloads (if file starts with http) or copies list file
+# Args:
+#   1: URL or path to file
+get_list_file() {
+    local _list_path="$1"
+    local _filename=$(basename "$_list_path")
+    if [[ "$_list_path" =~ ^https?:// ]]; then
+        echo "Downloading $_list_path -> ${LISTS_DIR}/${_filename}..."
+        curl -o "${LISTS_DIR}/${_filename}" -L "$_list_path"
+    elif [ -f "$_list_path" ]; then
+        echo "Copying $_list_path -> ${LISTS_DIR}/${_filename}..."
+        cp "$_list_path" "${LISTS_DIR}"
+    else
+        echo "WARNING: Unknown file: $_list_path. Ignoring it"
+    fi
+}
+
+######################
+# SCRIPT ENTRY POINT #
+######################
+
+# Clear temp dir
+rm -rf "$TEMP_DIR"
+
+# Make dirs
+mkdir -p "$TEMP_DIR"
+mkdir -p "$STRATEGIES_DIR"
+mkdir -p "$LISTS_DIR"
+
+# Download strategies
+if [ -f "$STRATEGIES_FILE" ]; then
+    # Skip empty / commented lines
+    grep -vE '^\s*#|^\s*$' "$STRATEGIES_FILE" | while IFS= read -r _url_or_file; do
+        get_strategy_file "$_url_or_file"
+    done
+else
+    echo "ERROR: No $STRATEGIES_FILE file"
+    exit 1
 fi
-git clone "$REPO_URL" "$TEMP_DIR"
 
-# Save repo version for comments
-git_head=$(git -C "$TEMP_DIR" rev-parse --short HEAD)
+# Download lists
+if [ -f "$LISTS_FILE" ]; then
+    # Skip empty / commented lines
+    grep -vE '^\s*#|^\s*$' "$LISTS_FILE" | while IFS= read -r _url_or_file; do
+        get_list_file "$_url_or_file"
+    done
+fi
 
-# Parse and test rules
+# Parse and test strategies
 if [ "$_test" == true ]; then
     # Check if container is running
     container_id=$(docker ps | grep zapret-sing-box-docker | tail -n1 | awk '{print $1}')
@@ -248,35 +313,38 @@ if [ "$_test" == true ]; then
         bash "$RELOAD_SCRIPT" >/dev/null
         echo -e "\nFinished!"
 
+        # Clear temp dir
+        rm -rf "$TEMP_DIR"
+
         exit 0
     }
 
-    echo -e "\nParsing and testing rules..."
-    export LOG_FILE LISTS_DIR ZAPRET_DIR_INT git_head ZAPRET_CONFIG TEST_CONFIG RELOAD_SCRIPT TEST_UR
+    echo -e "\nParsing and testing strategies from $STRATEGIES_DIR..."
+    export LOG_FILE LISTS_DIR ZAPRET_DIR_INT ZAPRET_CONFIG TEST_CONFIG RELOAD_SCRIPT TEST_URL
     export _test=true
     export -f expand_list_file
     export -f parse_bat
     export -f parse_test_bat
     trap cleanup SIGINT
-    #find "$TEMP_DIR" -type f -name "*.bat" -exec bash -c 'parse_test_bat "$0"' {} \; | tee "$LOG_FILE"
-    find "$TEMP_DIR" -type f -name "*.bat" -print0 | sort -Vz |
+    #find "$STRATEGIES_DIR" -type f -name "*.bat" -exec bash -c 'parse_test_bat "$0"' {} \; | tee "$LOG_FILE"
+    find "$STRATEGIES_DIR" -type f -name "*.bat" -print0 | sort -Vz |
         xargs -0 -I {} bash -c 'parse_test_bat "$0"' {} | tee "$LOG_FILE"
     cleanup
 
-# Just parse rules
+# Just parse strategies
 else
-    echo -e "\nParsing rules..."
+    echo -e "\nParsing strategies from $STRATEGIES_DIR..."
     echo "1. Please set \`NFQWS_ENABLE\` in zapret.conf to \`1\`"
     echo "2. Please set \`NFQWS_PORTS_TCP\` in zapret.conf to \`80,443,2053,2083,2087,2096,8443,1024-65535\`"
     echo "3. Please set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,1024-65535,19294-19344,50000-50100\`"
     echo "4. Copy parsed value of \`NFQWS_OPT\` from some script below into \`NFQWS_OPT\` in zapret.conf"
     echo -e "--------------------------------------------------------------------------------\n"
-    export LISTS_DIR ZAPRET_DIR_INT git_head
+    export LISTS_DIR ZAPRET_DIR_INT
     export -f expand_list_file
     export -f parse_bat
-    find "$TEMP_DIR" -type f -name "*.bat" -exec bash -c 'parse_bat "$0"' {} \; | tee "$LOG_FILE"
+    find "$STRATEGIES_DIR" -type f -name "*.bat" -exec bash -c 'parse_bat "$0"' {} \; | tee "$LOG_FILE"
     echo "--------------------------------------------------------------------------------"
-fi
 
-# Delete repo
-rm -rf "$TEMP_DIR"
+    # Clear temp dir
+    rm -rf "$TEMP_DIR"
+fi
