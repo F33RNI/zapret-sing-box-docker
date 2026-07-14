@@ -7,3 +7,7 @@ config.*
 zapret-discord-youtube-rules-converter.log*
 *.log*
 /*_tmp*/
+*.bak
+*_bak
+*.old
+*_old
