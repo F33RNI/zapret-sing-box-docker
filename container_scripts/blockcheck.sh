@@ -48,6 +48,19 @@ cd $_ZAPRET_DIR_INT
 echo "Stopping zapret"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
+# Prints log file, starts zapret and removes /blockcheck file to restore watchdog
+cleanup() {
+    echo -e "\n\nLogs file: $log_file"
+
+    # Start zapret back
+    echo -e "\nStarting zapret back"
+    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
+
+    # Restore zapret watchdog (see entrypoint.sh for more info)
+    if [ -f "/blockcheck" ]; then rm /blockcheck; fi
+}
+trap cleanup INT TERM
+
 # Run blockcheck.sh in BATCH mode
 echo -e "\nStarting blockcheck in batch mode on domains: $DOMAINS"
 BATCH=1 \
@@ -64,12 +77,3 @@ BATCH=1 \
     SKIP_TPWS=1 \
     SECURE_DNS=0 \
     ./blockcheck.sh | tee "$log_file"
-
-echo -e "\nBlockcheck done! Saved into $log_file"
-
-# Start zapret back
-echo -e "\nStarting zapret back"
-"$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
-
-# Restore zapret watchdog (see entrypoint.sh for more info)
-if [ -f "/blockcheck" ]; then rm /blockcheck; fi
