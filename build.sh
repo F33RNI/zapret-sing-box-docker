@@ -230,18 +230,21 @@ get_fake_file() {
 # ################# #
 
 # Download dnscrypt-proxy
+echo "Checking dnscrypt-proxy version..."
 release_json=$(curl -s https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*dnscrypt-proxy-${PLATFORM}_${DNSCRYPT_ARCH}-.*\.tar\.gz")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 check_download "$DNSCRYPT_DIR" "$download_url" "$latest_tag_name"
 
 # Download sing-box
+echo "Checking sing-box version..."
 release_json=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*sing-box-.*-${PLATFORM}-${SING_BOX_ARCH}\.tar\.gz")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 check_download "$SING_BOX_DIR" "$download_url" "$latest_tag_name"
 
 # Download zapret
+echo "Checking zapret version..."
 release_json=$(curl -s https://api.github.com/repos/bol-van/zapret/releases/latest)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -v "openwrt")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
