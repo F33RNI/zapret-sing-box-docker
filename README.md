@@ -113,7 +113,7 @@ You can apply new config files without restarting the container. For that, simpl
 Simply start the container and run
 
 ```shell
-`./blockcheck.sh`
+./blockcheck.sh
 ```
 
 So
