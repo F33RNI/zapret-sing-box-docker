@@ -35,9 +35,19 @@ fi
 # Restart zapret by stopping it (will be restarted by watchdog. See entrypoint.sh for more info)
 echo "Restarting zapret"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
-sleep 1
 
-# Restart dnscrypt-proxy and wait a bit
+# Wait for zapret (nfqws) to start in 5 seconds
+for i in {1..10}; do
+    nfqws_pid=$(pidof nfqws)
+    [[ -n "${nfqws_pid:-}" ]] && break
+    sleep 0.5
+done
+if [[ ! -n "${nfqws_pid:-}" ]]; then
+    echo "WARNING: zapret was unable to start in 5s" | tee -a "$_ZAPRET_LOG_FILE"
+    return
+fi
+
+# Restart dnscrypt-proxy and wait a bit to make sure it's started
 echo "Restarting dnscrypt-proxy"
 #cp /etc/resolv.conf.override /etc/resolv.conf
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
