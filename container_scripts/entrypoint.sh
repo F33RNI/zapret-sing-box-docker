@@ -74,12 +74,12 @@ ln -sf "$_DNSCRYPT_LOG_FILE" /var/log/dnscrypt-proxy.err
 # Starts zapret and saves nfqws PID
 #   NOTE: executed by zapret_start_watchdog()
 _zapret_start() {
-    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start
+    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
     nfqws_pid=$(pidof nfqws)
     if [[ -n "${nfqws_pid}" ]]; then
-        echo "nfqws pid: $nfqws_pid"
+        echo "nfqws pid: $nfqws_pid" | tee -a "$_ZAPRET_LOG_FILE"
     else
-        echo "nfqws was unable to start!"
+        echo "nfqws was unable to start!" | tee -a "$_ZAPRET_LOG_FILE"
         nfqws_pid=""
     fi
 }
@@ -87,7 +87,7 @@ _zapret_start() {
 # Stops zapret and clears nfqws_pid variable
 #   NOTE: executed by zapret_start_watchdog() and cleanup()
 _zapret_stop() {
-    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop
+    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
     nfqws_pid=""
 }
 
@@ -99,19 +99,19 @@ zapret_start_watchdog() {
         # Check for /stop file
         if [ -f "/stop" ]; then
             echo "/stop file is present. Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            _zapret_stop | tee -a "$_ZAPRET_LOG_FILE"
+            _zapret_stop
             break
         fi
 
         # Not started yet
         if [[ ! -n "${nfqws_pid:-}" ]]; then
             echo "No nfqws. Starting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            _zapret_start | tee -a "$_ZAPRET_LOG_FILE"
+            _zapret_start
 
         # Started -> check nfqws
-        elif [[ -f "/blockcheck" ]] && ! kill -0 "$nfqws_pid" 2>/dev/null; then
+        elif [[ ! -f "/blockcheck" ]] && ! kill -0 "$nfqws_pid" 2>/dev/null; then
             echo "nfqws died! Restarting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            _zapret_start | tee -a "$_ZAPRET_LOG_FILE"
+            _zapret_start
         fi
         sleep 1
     done
@@ -131,7 +131,7 @@ cleanup() {
     # Stop zapret
     if [[ -n "${nfqws_pid:-}" ]]; then
         echo "Stopping zapret" | tee -a "$_ZAPRET_LOG_FILE"
-        _zapret_stop | tee -a "$_ZAPRET_LOG_FILE"
+        _zapret_stop
     fi
 
     if [ -f "/stop" ]; then rm /stop; fi
