@@ -6,3 +6,4 @@ config.*
 /zapret-discord-youtube*/
 zapret-discord-youtube-rules-converter.log*
 *.log*
+/*_tmp*/
