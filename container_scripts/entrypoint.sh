@@ -103,13 +103,20 @@ zapret_start_watchdog() {
             break
         fi
 
+        # Ignore if /blockcheck file is present
+        if [[ -f "/blockcheck" ]]; then
+            echo "zapret watchdog is paused due to /blockcheck file present" | tee -a "$_ZAPRET_LOG_FILE"
+            sleep 1
+            continue
+        fi
+
         # Not started yet
         if [[ ! -n "${nfqws_pid:-}" ]]; then
             echo "No nfqws. Starting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
             _zapret_start
 
         # Started -> check nfqws
-        elif [[ ! -f "/blockcheck" ]] && ! kill -0 "$nfqws_pid" 2>/dev/null; then
+        elif ! kill -0 "$nfqws_pid" 2>/dev/null; then
             echo "nfqws died! Restarting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
             _zapret_start
         fi
