@@ -204,6 +204,20 @@ parse_test_bat() {
     echo "Calling reload script..."
     bash "$RELOAD_SCRIPT" >/dev/null
 
+    # Wait for zapret (nfqws) to start in 5 seconds
+    for i in {1..10}; do
+        nfqws_pid=$(docker exec -t zapret-sing-box-docker /usr/bin/pidof nfqws)
+        if [[ -n "${nfqws_pid:-}" ]]; then
+            echo "zapret started. nfqws PID: $nfqws_pid"
+            break
+        fi
+        sleep 0.5
+    done
+    if [[ ! -n "${nfqws_pid:-}" ]]; then
+        echo "zapret was unable to start (⊙_⊙ ) in 5s. Check strategy"
+        return
+    fi
+
     # Test
     echo "Testing $TEST_URL"
     docker exec -t zapret-sing-box-docker curl --connect-timeout 1 --max-time 3 -L "$TEST_URL" >/dev/null 2>&1
