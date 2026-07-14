@@ -3,7 +3,7 @@
 # This file is part of the zapret-sing-box-docker distribution.
 # See <https://github.com/F33RNI/zapret-sing-box-docker> for more info.
 #
-# Copyright (c) 2025 Fern Lane.
+# Copyright (c) 2025-2026 Fern Lane.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
