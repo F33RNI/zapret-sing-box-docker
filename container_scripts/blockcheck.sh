@@ -39,6 +39,9 @@ export DOMAINS
 # Output file
 log_file="${_LOGS_DIR_INT}/blockcheck.log"
 
+# Create blockcheck file for zapret watchdog (see entrypoint.sh for more info)
+touch /blockcheck
+
 cd $_ZAPRET_DIR_INT
 
 # Stop zapret first
@@ -67,3 +70,6 @@ echo -e "\nBlockcheck done! Saved into $log_file"
 # Start zapret back
 echo -e "\nStarting zapret back"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
+
+# Restore zapret watchdog (see entrypoint.sh for more info)
+if [ -f "/blockcheck" ]; then rm /blockcheck; fi

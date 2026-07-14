@@ -32,12 +32,12 @@ if [[ "$container" != "docker" ]]; then
     exit 126
 fi
 
-# Create stop file for sing-box wrapper
+# Create stop file for sing-box and zapret wrapper
 touch /stop
 
-# Stop zapret
-echo "Stopping zapret"
-"$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
+# # Stop zapret (DEPRECATED due to watchdog in entrypoint.sh)
+# echo "Stopping zapret"
+# "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
 # Stop dnscrypt-proxy and restore default DNS
 echo "Stopping dnscrypt-proxy service and restoring original DNS servers"
@@ -48,6 +48,7 @@ if [ -f "/etc/resolv.conf.old" ]; then
 fi
 
 # Finally send SIGTERM to sing-box (because it's the only "blocking" process in entrypoint)
+# This will also stop zapret (see entrypoint.sh for more info)
 sing_box_pid=$(pidof "sing-box")
 if [[ $sing_box_pid ]]; then
     echo "Stopping sing-box"

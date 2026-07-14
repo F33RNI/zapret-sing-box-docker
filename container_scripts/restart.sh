@@ -32,9 +32,9 @@ if [[ "$container" != "docker" ]]; then
     exit 126
 fi
 
-# Restart zapret
+# Restart zapret by stopping it (will be restarted by watchdog. See entrypoint.sh for more info)
 echo "Restarting zapret"
-"$_ZAPRET_DIR_INT/init.d/sysv/zapret" restart | tee -a "$_ZAPRET_LOG_FILE"
+"$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 sleep 1
 
 # Restart dnscrypt-proxy and wait a bit
