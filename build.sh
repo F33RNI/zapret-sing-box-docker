@@ -26,7 +26,7 @@
 # This script downloads sing-box, zapret and dnscrypt-proxy, builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-_VERSION="1.1"
+_VERSION="2.0"
 
 # Print some cool looking ascii art :)
 echo "                ,                     .               .      .        "
@@ -72,6 +72,7 @@ if [ -z "$DOCKERFILE" ] ||
     [ -z "$SING_BOX_DIR" ] ||
     [ -z "$ZAPRET_DIR" ] ||
     [ -z "$ZAPRET_FAKE_DIR" ] ||
+    [ -z "$EXTRA_FAKES" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
@@ -203,18 +204,25 @@ check_download() {
     echo "$target_dir downloaded successfully"
 }
 
-# Downloads .bin file from https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/
+# Downloads (if file starts with http) or copies fake file
 # Args:
-#   1: Name of file
-download_fake_file() {
-    local filename="$1"
+#   1: URL or path to file
+get_fake_file() {
+    local _fake_path="$1"
     if [ -z "$ZAPRET_DIR" ]; then
         echo "ERROR: ZAPRET_DIR environment variable is empty / not specified"
         exit 1
     fi
-    echo "Downloading $filename..."
-    curl -o "${ZAPRET_FAKE_DIR}/${filename}" \
-        -L "https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/${filename}"
+    local _filename=$(basename "$_fake_path")
+    if [[ "$_fake_path" =~ ^https?:// ]]; then
+        echo "Downloading $_fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
+        curl -o "${ZAPRET_FAKE_DIR}/${_filename}" -L "$_fake_path"
+    elif [ -f "$_fake_path" ]; then
+        echo "Copying $_fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
+        cp "$_fake_path" "${ZAPRET_FAKE_DIR}"
+    else
+        echo "WARNING: Unknown fake file: $_fake_path. Ignoring it"
+    fi
 }
 
 # ################# #
@@ -239,12 +247,13 @@ download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 
-# Download fake files
-source .env
-download_fake_file "quic_initial_dbankcloud_ru.bin"
-download_fake_file "stun.bin"
-download_fake_file "tls_clienthello_4pda_to.bin"
-download_fake_file "tls_clienthello_max_ru.bin"
+# Download extra fake files
+if [ -f "$EXTRA_FAKES" ]; then
+    # Skip empty / commented lines
+    grep -vE '^\s*#|^\s*$' "$EXTRA_FAKES" | while IFS= read -r extra_url_or_file; do
+        get_fake_file "$extra_url_or_file"
+    done
+fi
 
 # ########### #
 # Build image #
