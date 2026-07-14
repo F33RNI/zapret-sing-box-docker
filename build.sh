@@ -26,7 +26,7 @@
 # This script downloads sing-box, zapret and dnscrypt-proxy, builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-_VERSION="2.0"
+_VERSION="2.1"
 
 # Print some cool looking ascii art :)
 echo "                ,                     .               .      .        "
