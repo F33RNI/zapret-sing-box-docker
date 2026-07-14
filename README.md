@@ -37,18 +37,19 @@ All configs are located in `configs/` dir
 - dnscrypt-proxy official documentation: <https://github.com/DNSCrypt/dnscrypt-proxy/wiki/Configuration>
 - zapret official documentation: <https://github.com/bol-van/zapret?tab=readme-ov-file#nfqws>
 
-Use provided `zapret-discord-youtube-rules-converter.sh` script to fetch and parse rules from
-<https://github.com/Flowseal/zapret-discord-youtube> and edit `configs/zapret.conf` accordingly
+Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies-converter-tester_strategies.txt` and edit `configs/zapret.conf` accordingly
 
-Or you can start the container (by calling `start.sh`) and use `zapret-discord-youtube-rules-converter.sh` with `test` argument to test parsed rules
+**Or you can start the container (by calling `start.sh`) and use `strategies-converter-tester.sh` with `test` argument to test parsed strategies:**
 
 ```shell
 # Start the container
 TZ="Etc/UTC" ./start.sh
 
-# Parse and test ALL rules from <https://github.com/Flowseal/zapret-discord-youtube> using custom URL
-TEST_URL="https://rr1---sn-aigzrnld.googlevideo.com/videoplayback" ./zapret-discord-youtube-rules-converter.sh test
+# Parse and test ALL strategies from strategies-converter-tester_strategies.txt using custom URL
+TEST_URL="https://cp.cloudflare.com" ./strategies-converter-tester.sh test
 ```
+
+> You can specify custom URLs or local filepaths to windows .bat strategies inside strategies-converter-tester_strategies.txt and custom lists (URLs or local file paths) used by them inside strategies-converter-tester_lists.txt
 
 #### 5. Provide ports and start the container
 
@@ -129,7 +130,7 @@ To edit domains, add `DOMAINS` variable to the `.env` file and run `./build.sh` 
 
 ---
 
-### 🐧 Linux service (example)
+### 🐧 Linux service **(example)**
 
 `/lib/systemd/system/zapret-sing-box-docker.service`
 
@@ -147,8 +148,7 @@ ExecStartPre=/usr/bin/sleep 5
 ExecStart=/path/to/zapret-sing-box-docker/start.sh nd
 ExecStop=/path/to/zapret-sing-box-docker/stop.sh rm
 ExecReload=/path/to/zapret-sing-box-docker/reload.sh
-Restart=on-failure
-RestartSec=5
+Restart=no
 User=your-user-name
 Group=your-user-name
 
@@ -161,11 +161,14 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now zapret-sing-box-docker.service
 ```
 
+> With that service you can reload container by typing `sudo systemctl reload zapret-sing-box-docker.service`
+
 ---
 
-### 🌲 Dependencies
+### 🌲 Dependencies and credits
 
 - <https://github.com/bol-van/zapret>
 - <https://github.com/DNSCrypt/dnscrypt-proxy>
 - <https://github.com/SagerNet/sing-box>
 - <https://github.com/Flowseal/zapret-discord-youtube>
+- <https://github.com/Sergeydigl3/flowseal-strategies-backup>
