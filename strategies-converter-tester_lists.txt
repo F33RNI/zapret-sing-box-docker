@@ -1,5 +1,5 @@
-https://raw.githubusercontent.com/Sergeydigl3/flowseal-strategies-backup/refs/heads/master/lists/ipset-all.txt
-https://raw.githubusercontent.com/Sergeydigl3/flowseal-strategies-backup/refs/heads/master/lists/ipset-exclude.txt
-https://raw.githubusercontent.com/Sergeydigl3/flowseal-strategies-backup/refs/heads/master/lists/list-exclude.txt
-https://raw.githubusercontent.com/Sergeydigl3/flowseal-strategies-backup/refs/heads/master/lists/list-general.txt
-https://raw.githubusercontent.com/Sergeydigl3/flowseal-strategies-backup/refs/heads/master/lists/list-google.txt
+https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/lists/ipset-all.txt
+https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/lists/ipset-exclude.txt
+https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/lists/list-exclude.txt
+https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/lists/list-general.txt
+https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/lists/list-google.txt

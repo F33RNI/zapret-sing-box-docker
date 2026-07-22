@@ -1,0 +1,3 @@
+https://github.com/Sergeydigl3/flowseal-strategies-backup/raw/refs/heads/master/bin/quic_initial_dbankcloud_ru.bin
+https://github.com/Sergeydigl3/flowseal-strategies-backup/raw/refs/heads/master/bin/tls_clienthello_4pda_to.bin
+https://github.com/Sergeydigl3/flowseal-strategies-backup/raw/refs/heads/master/bin/tls_clienthello_max_ru.bin
