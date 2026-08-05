@@ -2,6 +2,7 @@ https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/ACTIV
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/ACTIVE_GAME_UDP.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_4pda.to.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_dbankcloud_ru.bin
+https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_rutube_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_steamcommunity_com.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_tencent_com.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/stun2.bin
