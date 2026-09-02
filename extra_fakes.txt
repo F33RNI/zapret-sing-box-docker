@@ -1,10 +1,12 @@
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/ACTIVE_DISCORD_UDP.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/ACTIVE_GAME_UDP.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_4pda.to.bin
-https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_dbankcloud_ru.bin
+https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_5ka_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_rutube_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_steamcommunity_com.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_tencent_com.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/stun2.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_4pda_to.bin
+https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_5ka_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_max_ru.bin
+https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_sochi_park.bin
