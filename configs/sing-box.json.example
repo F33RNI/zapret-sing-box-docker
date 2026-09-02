@@ -1,43 +1,23 @@
 {
+    "$schema": "https://sing-box.sagernet.org/schema.json",
+
     // Logs redirected to the file by container's sript, so don't specify any file here
     "log": { "disabled": false, "level": "info", "timestamp": true },
 
     // DNS servers
     "dns": {
         "servers": [
-            // dnscrypt-proxy DoH (sing-box version >= 1.12.0)
-            {
-                "type": "https",
-                "tag": "dnscrypt-proxy-doh",
-                "server": "127.0.0.1",
-                "server_port": 3000,
-                "path": "dns-query",
-                "tls": {
-                    "enabled": true,
-                    "disable_sni": true,
-                    "insecure": true
-                }
-            },
+            // Add your other DNS servers here if needed
 
-            // dnscrypt-proxy normal UDP
-            {
-                "type": "udp",
-                "tag": "dnscrypt-proxy-udp",
-                "server": "127.0.0.1",
-                "server_port": 53
-            },
-
-            // System DNS
+            // System DNS (should be dnscrypt-proxy)
             { "type": "local", "tag": "local" }
         ],
 
+        // Try "ipv4_only" if needed
         "strategy": "prefer_ipv4",
 
         // Disable cache because dnscrypt-proxy handles it
-        "disable_cache": true,
-        "disable_expire": false,
-        "independent_cache": false,
-        "reverse_mapping": false
+        "disable_cache": true
     },
 
     // This is how you can connect to the container. Please don't forget to specify ports to the ./start script
@@ -56,15 +36,8 @@
     ],
 
     // Direct means via zapret
-    "outbounds": [
-        // dnscrypt-proxy DoH DNS
-        { "type": "direct", "tag": "direct" },
+    "outbounds": [{ "type": "direct", "tag": "direct" }],
 
-        // System DNS
-        { "type": "direct", "tag": "direct-local", "domain_resolver": "local" }
-    ],
-
-    // Sniff DNS, block ads, some tracking and local net, use system DNS for local sites
     "route": {
         "rules": [
             // DNS
@@ -75,108 +48,12 @@
             { "ip_cidr": ["127.0.0.0/8"], "action": "reject" },
 
             // Localnet
-            { "ip_cidr": ["10.0.0.0/24", "192.168.0.0/16"], "action": "reject" },
+            { "ip_cidr": ["10.0.0.0/24", "192.168.0.0/16"], "action": "reject" }
 
-            // ADs and analytics
-            { "domain": ["appcenter.ms", "firebase.io", "crashlytics.com"], "action": "reject" },
-            { "rule_set": ["geosite-category-ads-all", "geosite-firebase"], "action": "reject" },
-
-            // Use system DNS for these
-            {
-                "rule_set": [
-                    "geosite-category-ru",
-                    "geosite-category-ir",
-                    "geosite-cn",
-                    "geosite-geolocation-cn",
-                    "geoip-ru",
-                    "geoip-ir",
-                    "geoip-cn"
-                ],
-                "action": "route",
-                "outbound": "direct-local"
-            }
-        ],
-        "rule_set": [
-            // Ads and tracking
-            {
-                "type": "remote",
-                "tag": "geosite-category-ads-all",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-            {
-                "type": "remote",
-                "tag": "geosite-firebase",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-firebase.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-
-            // Country sites
-            {
-                "type": "remote",
-                "tag": "geosite-category-ru",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ru.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-            {
-                "type": "remote",
-                "tag": "geosite-category-ir",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ir.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-            {
-                "type": "remote",
-                "tag": "geosite-cn",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-            {
-                "type": "remote",
-                "tag": "geosite-geolocation-cn",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-cn.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-
-            // IPs
-            {
-                "type": "remote",
-                "tag": "geoip-ru",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-            {
-                "type": "remote",
-                "tag": "geoip-ir",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            },
-            {
-                "type": "remote",
-                "tag": "geoip-cn",
-                "format": "binary",
-                "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
-                "download_detour": "direct",
-                "update_interval": "1d"
-            }
+            // Add ADs and tracking block / other rules here if needed
         ],
         "final": "direct",
-        "default_domain_resolver": "dnscrypt-proxy-doh",
+        "default_domain_resolver": "local",
         "auto_detect_interface": true
     }
 }

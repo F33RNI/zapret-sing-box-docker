@@ -27,7 +27,7 @@
 ##
 ## Remove the leading # first to enable this; lines starting with # are ignored.
 
-server_names = ['scaleway-fr', 'scaleway-fr-ipv6', 'nextdns', 'nextdns-ipv6', 'adguard-dns-unfiltered-doh', 'adguard-dns-unfiltered-doh-ipv6', 'cloudflare', 'cloudflare-ipv6']
+# server_names = ['scaleway-fr', 'scaleway-fr-ipv6', 'nextdns', 'nextdns-ipv6', 'adguard-dns-unfiltered-doh', 'adguard-dns-unfiltered-doh-ipv6', 'cloudflare', 'cloudflare-ipv6']
 
 
 ## List of local addresses and ports to listen to. Can be IPv4 and/or IPv6.
@@ -63,7 +63,7 @@ max_clients = 500
 ipv4_servers = true
 
 # Use servers reachable over IPv6 -- Do not enable if you don't have IPv6 connectivity
-ipv6_servers = true
+ipv6_servers = false
 
 # Use servers implementing the DNSCrypt protocol
 dnscrypt_servers = true
