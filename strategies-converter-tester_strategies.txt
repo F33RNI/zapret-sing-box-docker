@@ -11,6 +11,7 @@ https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/mai
 https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(ALT10).bat
 https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(ALT11).bat
 https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(ALT12).bat
+https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(ALT13).bat
 https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(EXP).bat
 https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(FAKE%20TLS%20AUTO).bat
 https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/general%20(FAKE%20TLS%20AUTO%20ALT).bat
