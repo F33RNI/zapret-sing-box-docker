@@ -10,3 +10,4 @@ https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_c
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_5ka_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_max_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_sochi_park.bin
+https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/tls_clienthello_www_sferum_ru.bin
