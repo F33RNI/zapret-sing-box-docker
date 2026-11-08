@@ -1,6 +1,6 @@
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/ACTIVE_DISCORD_UDP.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/ACTIVE_GAME_UDP.bin
-https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_4pda.to.bin
+https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_4pda_to.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_5ka_ru.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_lemana_pro.bin
 https://github.com/Flowseal/zapret-discord-youtube/raw/refs/heads/main/bin/quic_initial_rutube_ru.bin

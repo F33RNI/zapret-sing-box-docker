@@ -114,6 +114,33 @@ if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ]; then
 fi
 echo "Working on $PLATFORM platform. dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, sing-box: $SING_BOX_ARCH"
 
+# Tries to download / retrieve content from some URL
+# Args:
+#   1: URL
+#   2: Destination file (or empty to just retrieve content with --silent mode and echo it)
+# Returns: 1 on error, 0 otherwise
+curl_wrapper() {
+    local url="$1"
+    local destination="$2"
+
+    if [ -z "$destination" ]; then
+        local response=$(curl --retry 3 --retry-delay 2 --retry-all-errors -f -s -w "%{http_code}" -L "$url")
+        local http_code=$(tail -n1 <<<"$response")
+        local content=$(sed '$ d' <<<"$response")
+        if [[ "$http_code" == "200" ]]; then
+            echo "$content"
+        else
+            return 1
+        fi
+    else
+        if ! curl --retry 3 --retry-delay 2 --retry-all-errors -f -o "$destination" -L "$url"; then
+            echo "ERROR: Unable to download $url -> $destination"
+            return 1
+        fi
+    fi
+    return 0
+}
+
 # Checks if config file doesn't exist and tries to copy .example config / downloaded config file. Note: existing
 #  .example file will be prioritized
 # Args:
@@ -172,11 +199,7 @@ check_download() {
     # Download and check
     local download_filename=$(basename "$download_url")
     echo -e "\nDownloading $download_url"
-    curl --output "$download_filename" --location "$download_url"
-    if [ ! -f "$download_filename" ]; then
-        echo "ERROR: Unable to download $download_filename"
-        exit 1
-    fi
+    if ! curl_wrapper "$download_url" "$download_filename"; then exit 1; fi
 
     # Extract and check
     if [[ "$download_filename" == *.zip ]]; then
@@ -208,20 +231,20 @@ check_download() {
 # Args:
 #   1: URL or path to file
 get_fake_file() {
-    local _fake_path="$1"
+    local fake_path="$1"
     if [ -z "$ZAPRET_DIR" ]; then
         echo "ERROR: ZAPRET_DIR environment variable is empty / not specified"
         exit 1
     fi
-    local _filename=$(basename "$_fake_path")
-    if [[ "$_fake_path" =~ ^https?:// ]]; then
-        echo "Downloading $_fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
-        curl -o "${ZAPRET_FAKE_DIR}/${_filename}" -L "$_fake_path"
-    elif [ -f "$_fake_path" ]; then
-        echo "Copying $_fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
-        cp "$_fake_path" "${ZAPRET_FAKE_DIR}"
+    local _filename=$(basename "$fake_path")
+    if [[ "$fake_path" =~ ^https?:// ]]; then
+        echo "Downloading $fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
+        if ! curl_wrapper "$fake_path" "${ZAPRET_FAKE_DIR}/${_filename}"; then exit 1; fi
+    elif [ -f "$fake_path" ]; then
+        echo "Copying $fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
+        cp "$fake_path" "${ZAPRET_FAKE_DIR}"
     else
-        echo "WARNING: Unknown fake file: $_fake_path. Ignoring it"
+        echo "WARNING: Unknown fake file: $fake_path. Ignoring it"
     fi
 }
 
@@ -230,24 +253,30 @@ get_fake_file() {
 # ################# #
 
 # Download dnscrypt-proxy
-echo "Checking dnscrypt-proxy version..."
-release_json=$(curl -s https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest) && sleep 1s
+url="https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest"
+echo "Checking dnscrypt-proxy version ($url)..."
+release_json=$(curl_wrapper "$url") || (echo "ERROR" && exit 1)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*dnscrypt-proxy-${PLATFORM}_${DNSCRYPT_ARCH}-.*\.tar\.gz")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+sleep 1s
 check_download "$DNSCRYPT_DIR" "$download_url" "$latest_tag_name"
 
 # Download sing-box
-echo "Checking sing-box version..."
-release_json=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest) && sleep 1s
+url="https://api.github.com/repos/SagerNet/sing-box/releases/latest"
+echo "Checking sing-box version ($url)..."
+release_json=$(curl_wrapper "$url") || (echo "ERROR" && exit 1)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*sing-box-.*-${PLATFORM}-${SING_BOX_ARCH}\.tar\.gz")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+sleep 1s
 check_download "$SING_BOX_DIR" "$download_url" "$latest_tag_name"
 
 # Download zapret
-echo "Checking zapret version..."
-release_json=$(curl -s https://api.github.com/repos/bol-van/zapret/releases/latest) && sleep 1s
+url="https://api.github.com/repos/bol-van/zapret/releases/latest"
+echo "Checking zapret version ($url)..."
+release_json=$(curl_wrapper "$url") || (echo "ERROR" && exit 1)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -v "openwrt")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+sleep 1s
 check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 
 # Download extra fake files
@@ -255,7 +284,7 @@ if [ -f "$EXTRA_FAKES" ]; then
     # Skip empty / commented lines
     grep -vE '^\s*#|^\s*$' "$EXTRA_FAKES" | while IFS= read -r extra_url_or_file; do
         get_fake_file "$extra_url_or_file"
-    done
+    done || exit 1
 fi
 
 # ########### #
