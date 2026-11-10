@@ -36,10 +36,10 @@ fi
 # Args:
 #   1: Path to log file
 delete_old_log() {
-    _config_file=$1
-    if [ -f "$_config_file" ]; then
-        echo "Deleting existing log file: $_config_file"
-        rm $_config_file
+    local log_file=$1
+    if [ -f "$log_file" ]; then
+        echo "Deleting existing log file: $log_file"
+        rm $log_file
     fi
 }
 
@@ -51,7 +51,7 @@ echo "Setting timezone to $TZ"
 echo "$TZ" >/etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
-# Remove old config files
+# Remove old log files
 delete_old_log "$_DNSCRYPT_LOG_FILE"
 delete_old_log "$_SING_BOX_LOG_FILE"
 delete_old_log "$_ZAPRET_LOG_FILE"
