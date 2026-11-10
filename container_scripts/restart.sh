@@ -43,8 +43,8 @@ for i in {1..10}; do
     sleep 0.5
 done
 if [[ ! -n "${nfqws_pid:-}" ]]; then
-    echo "WARNING: zapret was unable to start in 5s" | tee -a "$_ZAPRET_LOG_FILE"
-    return
+    echo "ERROR: zapret was unable to start in 5s" | tee -a "$_ZAPRET_LOG_FILE"
+    exit 124
 fi
 
 # Restart dnscrypt-proxy and wait a bit to make sure it's started
