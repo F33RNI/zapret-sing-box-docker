@@ -40,4 +40,4 @@ if [ "$(docker container inspect -f '{{.State.Status}}' $container_id)" != "runn
 fi
 
 # Call internal script
-docker exec -it "$container_id" ./blockcheck.sh
+docker exec -it -e DOMAINS="$DOMAINS" "$container_id" ./blockcheck.sh

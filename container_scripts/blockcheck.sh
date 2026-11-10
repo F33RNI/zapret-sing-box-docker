@@ -34,6 +34,7 @@ fi
 
 # Domains to check (space separated)
 DOMAINS=${DOMAINS:-${DOMAINS_DEFAULT:-youtube.com}}
+echo "\$DOMAINS=$DOMAINS"
 export DOMAINS
 
 # Output file
