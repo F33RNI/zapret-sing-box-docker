@@ -34,11 +34,38 @@ if [ -z "$PORTS" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$SING_BOX_CONFIG_FILE" ] ||
     [ -z "$ZAPRET_CONFIG_FILE" ] ||
+    [ -z "$DNSCRYPT_DIR" ] ||
+    [ -z "$SING_BOX_DIR" ] ||
+    [ -z "$ZAPRET_DIR" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
     exit 1
 fi
+
+# Checks if config file doesn't exist and tries to copy .example config / downloaded config file. Note: existing
+#  .example file will be prioritized
+# Args:
+#   1: Path to existing config file (in download asset) or empty to ignore it
+#   2: Path to expected config file
+check_copy_config_file() {
+    local built_in_config="$1"
+    local config_file="$2"
+
+    if [ ! -f "$config_file" ] && [ ! -f "${config_file}.example" ] && [[ -z "$built_in_config" || ! -f "$built_in_config" ]]; then
+        echo "ERROR: No config file $config_file or ${config_file}.example"
+        exit 1
+    elif [ ! -f "$config_file" ]; then
+        if [ -f "${config_file}.example" ]; then
+            echo "WARNING: File $config_file doesn't exist. Copying example one (${config_file}.example)"
+            cp "${config_file}.example" "$config_file"
+        else
+            echo "WARNING: File $config_file doesn't exist. Copying $built_in_config"
+            cp "$built_in_config" "$config_file"
+        fi
+
+    fi
+}
 
 # Specify nd argument to this script to not use -d when starting the container
 if [ "$1" = "nd" ] || [ "$1" = "nodetach" ] || [ "$1" = "no-detach" ]; then _no_detach=true; fi
@@ -57,6 +84,11 @@ sing_box_config_file_abs=$(readlink -f "$SING_BOX_CONFIG_FILE")
 zapret_config_file_abs=$(readlink -f "$ZAPRET_CONFIG_FILE")
 logs_dir_abs=$(readlink -f "$LOGS_DIR")
 
+# Check config files and copy .example if not exists
+check_copy_config_file "$DNSCRYPT_DIR/example-dnscrypt-proxy.toml" "$DNSCRYPT_CONFIG_FILE"
+check_copy_config_file "" "$SING_BOX_CONFIG_FILE"
+check_copy_config_file "$ZAPRET_DIR/config.default" "$ZAPRET_CONFIG_FILE"
+
 # Start the container
 run_type=()
 if [ "$_no_detach" != true ]; then run_type+=("-d"); fi
@@ -66,9 +98,9 @@ if ! docker run \
     --cap-add NET_ADMIN \
     $ports_arg \
     --env TZ=${TZ} \
-    --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml" \
-    --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json" \
-    --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf" \
+    --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml:ro" \
+    --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json:ro" \
+    --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf:ro" \
     --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
     --name "zapret-sing-box-docker" \
     ${run_type[@]} "f33rni/zapret-sing-box-docker"; then

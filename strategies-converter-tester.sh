@@ -25,8 +25,13 @@
 
 # This script downloads and parses .bat strategies from strategies-converter-tester_strategies.txt,
 # converts them and tests if requested (see below)
-# ----> SPECIFY test ARGUMENT TO THIS SCRIPT TO TEST EACH OPTION <----
-if [ "$1" = "test" ]; then _test=true; fi
+
+_arg_1="${1#-}"
+_arg_1="${_arg_1#-}"
+_arg_2="${2#-}"
+_arg_2="${_arg_2#-}"
+if [[ "$_arg_1" == "test" ]] || [[ "$_arg_2" == "test" ]]; then _test=true; fi
+if [[ "$_arg_1" == "keep" ]] || [[ "$_arg_2" == "keep" ]]; then _keep=true; fi
 
 STRATEGIES_FILE=${STRATEGIES_FILE:-"strategies-converter-tester_strategies.txt"}
 LISTS_FILE=${LISTS_FILE:-"strategies-converter-tester_lists.txt"}
@@ -44,24 +49,50 @@ ZAPRET_CONFIG=${ZAPRET_CONFIG:-"configs/zapret.conf"}
 TEST_CONFIG=${TEST_CONFIG:-"configs/zapret.conf.test"}
 RELOAD_SCRIPT=${RELOAD_SCRIPT:-"reload.sh"}
 
+if [[ "$_arg_1" == "help" ]] || ([[ $_test == false ]] && [[ $_keep == false ]]); then
+    echo "You can specify optional [test] or [keep] arguments to this script."
+    echo "Usage: $(basename $0) [test] [keep]"
+    echo -e "  test, -test, --test\ttest each strategy after parsing. Test URL can be specified"
+    echo -e "\t\t\tusing TEST_URL environment variable"
+    echo -e "  keep, -keep, --keep\tdon't delete $TEMP_DIR after finish"
+    echo ""
+fi
+echo "Environment variables:"
+echo "  \$STRATEGIES_FILE=$STRATEGIES_FILE"
+echo "  \$LISTS_FILE=$LISTS_FILE"
+echo "  \$TEMP_DIR=$TEMP_DIR"
+echo "  \$STRATEGIES_DIR=$STRATEGIES_DIR"
+echo "  \$LISTS_DIR=$LISTS_DIR"
+echo ""
+echo "  \$TEST_URL=$TEST_URL"
+echo ""
+echo "  \$LOG_FILE=$LOG_FILE"
+echo ""
+echo "  \$ZAPRET_DIR_INT=$ZAPRET_DIR_INT"
+echo "  \$ZAPRET_CONFIG=$ZAPRET_CONFIG"
+echo "  \$TEST_CONFIG=$TEST_CONFIG"
+echo "  \$RELOAD_SCRIPT=$RELOAD_SCRIPT"
+if [[ "$_arg_1" == "help" ]]; then exit 0; fi
+echo ""
+
 # Reads lists file and converts into value for --hostlist-domains= / --ipset-ip= arguments
 # Args:
 #   1: Path to list file inside $LISTS_DIR
 expand_list_file() {
-    local _file="$1"
+    local file="$1"
 
     # Remove %LISTS% prefix
-    _file="${_file//%LISTS%/}"
+    file="${file//%LISTS%/}"
 
     # Read file safely
-    if [[ ! -f "$LISTS_DIR/$_file" ]]; then
+    if [[ ! -f "$LISTS_DIR/$file" ]]; then
         echo ""
         return
     fi
 
-    # Convert _lines into comma-separated + ignore empty / comments + trim empty _lines
-    # paste -sd"," "$LISTS_DIR/$_file" | grep -v "^\s*$" | grep -v "^\s*#" | sed 's/,,*/,/g; s/^,//; s/,$//'
-    grep -vE '^\s*(#|$)' "$LISTS_DIR/$_file" | sed -z 's/\r//g' | paste -sd "," -
+    # Convert lines into comma-separated + ignore empty / comments + trim empty lines
+    # paste -sd"," "$LISTS_DIR/$file" | grep -v "^\s*$" | grep -v "^\s*#" | sed 's/,,*/,/g; s/^,//; s/,$//'
+    grep -vE '^\s*(#|$)' "$LISTS_DIR/$file" | sed -z 's/\r//g' | paste -sd "," -
 }
 
 # Parses NFQWS_OPT from .bat file
@@ -71,105 +102,105 @@ parse_bat() {
     local bat_path="$1"
 
     # Remove ending ^
-    local _cleaned=$(sed ':a;N;$!ba;s/\^/ /g' "$bat_path")
+    local cleaned=$(sed ':a;N;$!ba;s/\^/ /g' "$bat_path")
 
     # Extract lines with --filter-
-    local _lines=$(echo "$_cleaned" | grep -oP -- '--filter-[^\n]+')
+    local lines=$(echo "$cleaned" | grep -oP -- '--filter-[^\n]+')
 
     # Exit if no strategy found
-    if [ -z "$_lines" ]; then exit 0; fi
+    if [ -z "$lines" ]; then exit 0; fi
 
     # Replace %GameFilter%
-    _lines=$(echo "$_lines" | sed "s|=%GameFilter%|=1024-65535|g" | sed "s|,%GameFilter%|,1024-65535|g")
-    _lines=$(echo "$_lines" | sed "s|=%GameFilterTCP%|=1024-65535|g" | sed "s|,%GameFilterTCP%|,1024-65535|g")
-    _lines=$(echo "$_lines" | sed "s|=%GameFilterUDP%|=1024-65535|g" | sed "s|,%GameFilterUDP%|,1024-65535|g")
+    lines=$(echo "$lines" | sed "s|=%GameFilter%|=1024-65535|g" | sed "s|,%GameFilter%|,1024-65535|g")
+    lines=$(echo "$lines" | sed "s|=%GameFilterTCP%|=1024-65535|g" | sed "s|,%GameFilterTCP%|,1024-65535|g")
+    lines=$(echo "$lines" | sed "s|=%GameFilterUDP%|=1024-65535|g" | sed "s|,%GameFilterUDP%|,1024-65535|g")
 
     # Replace --ipset="%LISTS%ipset-all.txt" with <HOSTLIST>
-    _lines=$(echo "$_lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
+    lines=$(echo "$lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
 
     # Replace --ipset="%LISTS%list-general.txt" with <HOSTLIST>
-    #_lines=$(echo "$_lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+    #_lines=$(echo "$lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
 
     # Proper lists replacement with expanding
     # 1. Read each line -> loop through arguments
     # 2. If arguments contains list -> check if file exists -> expand it, if not, remove argument entirely
     # 3. Keep other arguments intact
-    local _lines_lists_replaced=""
-    while IFS= read -r _line; do
-        [[ -z "$_line" ]] && continue
+    local lines_lists_replaced=""
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
 
-        local _line_rebuilt=""
+        local line_rebuilt=""
 
-        for _arg in $_line; do
+        for arg in $line; do
             # hostlist
-            if [[ "$_arg" =~ ^--hostlist=\"%LISTS%([^\"]+)\"$ ]]; then
-                _file="${BASH_REMATCH[1]}"
-                _list="$(expand_list_file "$_file")"
-                if [[ -n "$_list" ]]; then
-                    _line_rebuilt+=" --hostlist-domains=$_list"
+            if [[ "$arg" =~ ^--hostlist=\"%LISTS%([^\"]+)\"$ ]]; then
+                file="${BASH_REMATCH[1]}"
+                list="$(expand_list_file "$file")"
+                if [[ -n "$list" ]]; then
+                    line_rebuilt+=" --hostlist-domains=$list"
                 fi
                 continue
             fi
 
             # hostlist-exclude
-            if [[ "$_arg" =~ ^--hostlist-exclude=\"%LISTS%([^\"]+)\"$ ]]; then
-                _file="${BASH_REMATCH[1]}"
-                _list="$(expand_list_file "$_file")"
-                if [[ -n "$_list" ]]; then
-                    _line_rebuilt+=" --hostlist-exclude-domains=$_list"
+            if [[ "$arg" =~ ^--hostlist-exclude=\"%LISTS%([^\"]+)\"$ ]]; then
+                file="${BASH_REMATCH[1]}"
+                list="$(expand_list_file "$file")"
+                if [[ -n "$list" ]]; then
+                    line_rebuilt+=" --hostlist-exclude-domains=$list"
                 fi
                 continue
             fi
 
             # ipset
-            if [[ "$_arg" =~ ^--ipset=\"%LISTS%([^\"]+)\"$ ]]; then
-                _file="${BASH_REMATCH[1]}"
-                _list="$(expand_list_file "$_file")"
-                if [[ -n "$_list" ]]; then
-                    _line_rebuilt+=" --ipset-ip=$_list"
+            if [[ "$arg" =~ ^--ipset=\"%LISTS%([^\"]+)\"$ ]]; then
+                file="${BASH_REMATCH[1]}"
+                list="$(expand_list_file "$file")"
+                if [[ -n "$list" ]]; then
+                    line_rebuilt+=" --ipset-ip=$list"
                 fi
                 continue
             fi
 
             # ipset-exclude
-            if [[ "$_arg" =~ ^--ipset-exclude=\"%LISTS%([^\"]+)\"$ ]]; then
-                _file="${BASH_REMATCH[1]}"
-                _list="$(expand_list_file "$_file")"
-                if [[ -n "$_list" ]]; then
-                    _line_rebuilt+=" --ipset-exclude-ip=$_list"
+            if [[ "$arg" =~ ^--ipset-exclude=\"%LISTS%([^\"]+)\"$ ]]; then
+                file="${BASH_REMATCH[1]}"
+                list="$(expand_list_file "$file")"
+                if [[ -n "$list" ]]; then
+                    line_rebuilt+=" --ipset-exclude-ip=$list"
                 fi
                 continue
             fi
 
             # Unchanged
-            _line_rebuilt+=" $_arg"
+            line_rebuilt+=" $arg"
 
         done
 
         # Append without leading space + keep new line
-        _lines_lists_replaced+="${_line_rebuilt# }"$'\n'
+        lines_lists_replaced+="${line_rebuilt# }"$'\n'
 
-    done <<<"$_lines"
-    _lines="$_lines_lists_replaced"
+    done <<<"$lines"
+    lines="$lines_lists_replaced"
 
     # Replace %BIN%
-    _lines=$(echo "$_lines" | sed "s|%BIN%|$ZAPRET_DIR_INT/files/fake/|g")
+    lines=$(echo "$lines" | sed "s|%BIN%|$ZAPRET_DIR_INT/files/fake/|g")
 
-    # Trim trailing spaces from all _lines
-    _lines=$(echo "$_lines" | sed 's/[[:space:]]\+$//')
+    # Trim trailing spaces from all lines
+    lines=$(echo "$lines" | sed 's/[[:space:]]\+$//')
 
     # Replace double spaces
-    _lines=$(echo "$_lines" | sed 's/  */ /g')
+    lines=$(echo "$lines" | sed 's/  */ /g')
 
     # If last line ends with --new, remove it
-    _lines=$(echo "$_lines" | sed '$s/ --new$//')
+    lines=$(echo "$lines" | sed '$s/ --new$//')
 
     # Output final result
     if [ "$_test" == true ]; then
-        echo "${_lines}"
+        echo "${lines}"
     else
-        echo "# Parsed from $(basename "$bat_path")"
-        echo -e "NFQWS_OPT='\n${_lines}\n'\n"
+        echo "# Parsed from $(basename "$bat_path") @ $(date +"%Y-%m-%d %H:%M")"
+        echo -e "NFQWS_OPT='\n${lines}\n'\n"
     fi
 }
 
@@ -192,7 +223,7 @@ parse_test_bat() {
     echo -e "\n\nParsing and testing $(basename "$bat_path")..."
     #echo -e "NFQWS_OPT='\n${nfqws_opt}\n'"
 
-    # Rewrite NFQWS_OPT without new _lines
+    # Rewrite NFQWS_OPT without new $lines
     nfqws_opt="${nfqws_opt//$'\n'/$' '}"
 
     # Write test config
@@ -228,37 +259,45 @@ parse_test_bat() {
     fi
 }
 
-# Downloads (if file starts with http) or copies strategy file
-# Args:
-#   1: URL or path to file
-get_strategy_file() {
-    local _strategy_path="$1"
-    local _filename=$(basename "$_strategy_path")
-    if [[ "$_strategy_path" =~ ^https?:// ]]; then
-        echo "Downloading $_strategy_path -> ${STRATEGIES_DIR}/${_filename}..."
-        curl -o "${STRATEGIES_DIR}/${_filename}" -L "$_strategy_path"
-    elif [ -f "$_strategy_path" ]; then
-        echo "Copying $_strategy_path -> ${STRATEGIES_DIR}/${_filename}..."
-        cp "$_strategy_path" "${STRATEGIES_DIR}"
-    else
-        echo "WARNING: Unknown file: $_strategy_path. Ignoring it"
-    fi
+# Decodes URL string <https://stackoverflow.com/a/37840948>
+# @guest <https://stackoverflow.com/users/6470696/guest>
+# @netdesign8 <https://stackoverflow.com/users/1988310/netdesign8>
+function urldecode() {
+    : "${*//+/ }"
+    echo -e "${_//%/\\x}"
 }
 
-# Downloads (if file starts with http) or copies list file
+# Downloads (if file starts with http) or copies strategy/list file if it not exists.
+# NOTE: will call exit 1 on download error
 # Args:
 #   1: URL or path to file
-get_list_file() {
-    local _list_path="$1"
-    local _filename=$(basename "$_list_path")
-    if [[ "$_list_path" =~ ^https?:// ]]; then
-        echo "Downloading $_list_path -> ${LISTS_DIR}/${_filename}..."
-        curl -o "${LISTS_DIR}/${_filename}" -L "$_list_path"
-    elif [ -f "$_list_path" ]; then
-        echo "Copying $_list_path -> ${LISTS_DIR}/${_filename}..."
-        cp "$_list_path" "${LISTS_DIR}"
+#   2: Directory where to copy / download file
+get_file() {
+    local path="$1"
+    local filename=$(urldecode "$path")
+    filename=$(basename "$filename")
+    local base_dir="$2"
+
+    # File exists
+    if [[ -f "${base_dir}/${filename}" ]]; then
+        echo "${base_dir}/${filename} exists"
+
+    # Download remote
+    elif [[ "$path" =~ ^https?:// ]]; then
+        echo "Downloading $path -> ${base_dir}/${filename}..."
+        if ! curl --retry 3 --retry-delay 2 --retry-all-errors -f -o "${base_dir}/${filename}" -L "$path"; then
+            echo "ERROR: Unable to download $path -> ${base_dir}/${filename}"
+            exit 1
+        fi
+
+    # Copy local
+    elif [ -f "$path" ]; then
+        echo "Copying $path -> ${base_dir}/${filename} ..."
+        cp "$path" "${base_dir}/${filename}"
+
+    # Not exists or wrong path
     else
-        echo "WARNING: Unknown file: $_list_path. Ignoring it"
+        echo "WARNING: Unknown file: $path. Ignoring it"
     fi
 }
 
@@ -267,7 +306,7 @@ get_list_file() {
 ######################
 
 # Clear temp dir
-rm -rf "$TEMP_DIR"
+[[ $_keep == true ]] || rm -rf "$TEMP_DIR"
 
 # Make dirs
 mkdir -p "$TEMP_DIR"
@@ -277,9 +316,9 @@ mkdir -p "$LISTS_DIR"
 # Download strategies
 if [ -f "$STRATEGIES_FILE" ]; then
     # Skip empty / commented lines
-    grep -vE '^\s*#|^\s*$' "$STRATEGIES_FILE" | while IFS= read -r _url_or_file; do
-        get_strategy_file "$_url_or_file"
-    done
+    grep -vE '^\s*#|^\s*$' "$STRATEGIES_FILE" | while IFS= read -r url_or_file; do
+        get_file "$url_or_file" "$STRATEGIES_DIR"
+    done || exit 1
 else
     echo "ERROR: No $STRATEGIES_FILE file"
     exit 1
@@ -288,9 +327,9 @@ fi
 # Download lists
 if [ -f "$LISTS_FILE" ]; then
     # Skip empty / commented lines
-    grep -vE '^\s*#|^\s*$' "$LISTS_FILE" | while IFS= read -r _url_or_file; do
-        get_list_file "$_url_or_file"
-    done
+    grep -vE '^\s*#|^\s*$' "$LISTS_FILE" | while IFS= read -r url_or_file; do
+        get_file "$url_or_file" "$LISTS_DIR"
+    done || exit 1
 fi
 
 # Parse and test strategies
@@ -328,7 +367,7 @@ if [ "$_test" == true ]; then
         echo -e "\nFinished!"
 
         # Clear temp dir
-        rm -rf "$TEMP_DIR"
+        [[ $_keep == true ]] || rm -rf "$TEMP_DIR"
 
         exit 0
     }
@@ -336,6 +375,7 @@ if [ "$_test" == true ]; then
     echo -e "\nParsing and testing strategies from $STRATEGIES_DIR..."
     export LOG_FILE LISTS_DIR ZAPRET_DIR_INT ZAPRET_CONFIG TEST_CONFIG RELOAD_SCRIPT TEST_URL
     export _test=true
+    export _keep
     export -f expand_list_file
     export -f parse_bat
     export -f parse_test_bat
@@ -354,11 +394,12 @@ else
     echo "4. Copy parsed value of \`NFQWS_OPT\` from some script below into \`NFQWS_OPT\` in zapret.conf"
     echo -e "--------------------------------------------------------------------------------\n"
     export LISTS_DIR ZAPRET_DIR_INT
+    export _keep
     export -f expand_list_file
     export -f parse_bat
     find "$STRATEGIES_DIR" -type f -name "*.bat" -exec bash -c 'parse_bat "$0"' {} \; | tee "$LOG_FILE"
     echo "--------------------------------------------------------------------------------"
 
     # Clear temp dir
-    rm -rf "$TEMP_DIR"
+    [[ $_keep == true ]] || rm -rf "$TEMP_DIR"
 fi
