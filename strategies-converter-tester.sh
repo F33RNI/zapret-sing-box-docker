@@ -388,9 +388,9 @@ if [ "$_test" == true ]; then
 # Just parse strategies
 else
     echo -e "\nParsing strategies from $STRATEGIES_DIR..."
-    echo "1. Please set \`NFQWS_ENABLE\` in zapret.conf to \`1\`"
-    echo "2. Please set \`NFQWS_PORTS_TCP\` in zapret.conf to \`80,443,2053,2083,2087,2096,8443,1024-65535\`"
-    echo "3. Please set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,1024-65535,19294-19344,50000-50100\`"
+    echo "1. Set \`NFQWS_ENABLE\` in zapret.conf to \`1\`"
+    echo "2. Set \`NFQWS_PORTS_TCP\` in zapret.conf to \`80,443,2053,2083,2087,2096,8443,1024-65535\`"
+    echo "3. Set \`NFQWS_PORTS_UDP\` in zapret.conf to \`443,500,1701,4500,8095,2408,1024-65535,19294-19344,50000-50100\`"
     echo "4. Copy parsed value of \`NFQWS_OPT\` from some script below into \`NFQWS_OPT\` in zapret.conf"
     echo -e "--------------------------------------------------------------------------------\n"
     export LISTS_DIR ZAPRET_DIR_INT
