@@ -136,6 +136,16 @@ DOMAINS="cloudflare.com" ./blockcheck.sh
 
 ## 🧵 Useful patches
 
+### `warp.patch`
+
+> NOTE: BETA VERSION
+
+This adds Cloudflare WARP (<https://developers.cloudflare.com/warp-client/>) using usque implementation (<https://github.com/Diniboy1123/usque>)
+
+```shell
+git apply warp.patch
+```
+
 ### `dnscrypt-proxy_local_sources.patch`
 
 Use it if you want store cached dnscrypt-proxy sources and relays outside the container (e.g. if github is blocked)

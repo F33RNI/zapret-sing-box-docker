@@ -1,0 +1,311 @@
+diff --git a/.env b/.env
+index 00cb226..fd29185 100644
+--- a/.env
++++ b/.env
+@@ -25,11 +25,17 @@ LOGS_DIR=${LOGS_DIR:-./logs}
+ DNSCRYPT_CONFIG_FILE=${DNSCRYPT_CONFIG_FILE:-./configs/dnscrypt-proxy.toml}
+ SING_BOX_CONFIG_FILE=${SING_BOX_CONFIG_FILE:-./configs/sing-box.json}
+ ZAPRET_CONFIG_FILE=${ZAPRET_CONFIG_FILE:-./configs/zapret.conf}
++USQUE_CONFIG_FILE=${USQUE_CONFIG_FILE:-./configs/usque.json}
+ 
+ # Paths to programs on host (will be copied to the container)
+ DNSCRYPT_DIR=${DNSCRYPT_DIR:-./dnscrypt-proxy}
+ SING_BOX_DIR=${SING_BOX_DIR:-./sing-box}
+ ZAPRET_DIR=${ZAPRET_DIR:-./zapret}
++USQUE_DIR=${USQUE_DIR:-./usque}
++
++# Usque socks IP:PORT
++USQUE_SOCKS_IP=${USQUE_SOCKS_IP:-0.0.0.0}
++USQUE_SOCKS_PORT=${USQUE_SOCKS_PORT:-2090}
+ 
+ # Zapret fakes location
+ ZAPRET_FAKE_DIR=${ZAPRET_FAKE_DIR:-$ZAPRET_DIR/files/fake}
+diff --git a/.gitignore b/.gitignore
+index 7c1e0a2..bf527f5 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,6 +1,7 @@
+ /sing-box
+ /zapret
+ /dnscrypt-proxy
++/usque
+ /logs
+ config.*
+ /zapret-discord-youtube*/
+diff --git a/Dockerfile b/Dockerfile
+index afc187a..f127ebd 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -28,11 +28,13 @@ LABEL maintainer="Fern Lane"
+ ENV _DNSCRYPT_DIR_INT="/opt/dnscrypt-proxy"
+ ENV _SING_BOX_DIR_INT="/opt/sing-box"
+ ENV _ZAPRET_DIR_INT="/opt/zapret"
++ENV _USQUE_DIR_INT="/opt/usque"
+ 
+ # Internal paths to symbolic links of config files inside the container
+ ENV _DNSCRYPT_CONFIG_FILE_INT="${_DNSCRYPT_DIR_INT}/dnscrypt-proxy.toml"
+ ENV _SING_BOX_CONFIG_FILE_INT="${_SING_BOX_DIR_INT}/config.json"
+ ENV _ZAPRET_CONFIG_FILE_INT="${_ZAPRET_DIR_INT}/config"
++ENV _USQUE_CONFIG_FILE_INT="${_USQUE_DIR_INT}/usque.json"
+ 
+ # Arguments from build script or docker-compose.yml
+ ARG DNSCRYPT_DIR
+@@ -44,6 +46,15 @@ ENV SING_BOX_DIR=${SING_BOX_DIR}
+ ARG ZAPRET_DIR
+ RUN test -n "$ZAPRET_DIR"
+ ENV ZAPRET_DIR=${ZAPRET_DIR}
++ARG USQUE_DIR
++RUN test -n "$USQUE_DIR"
++ENV USQUE_DIR=${USQUE_DIR}
++ARG USQUE_SOCKS_IP
++RUN test -n "$USQUE_SOCKS_IP"
++ENV USQUE_SOCKS_IP=${USQUE_SOCKS_IP}
++ARG USQUE_SOCKS_PORT
++RUN test -n "$USQUE_SOCKS_PORT"
++ENV USQUE_SOCKS_PORT=${USQUE_SOCKS_PORT}
+ ARG _CONFIGS_DIR_INT
+ RUN test -n "$_CONFIGS_DIR_INT"
+ ENV _CONFIGS_DIR_INT=${_CONFIGS_DIR_INT}
+@@ -55,9 +66,11 @@ ENV _LOGS_DIR_INT=${_LOGS_DIR_INT}
+ ENV _DNSCRYPT_CONFIG_FILE="${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml"
+ ENV _SING_BOX_CONFIG_FILE="${_CONFIGS_DIR_INT}/sing-box.json"
+ ENV _ZAPRET_CONFIG_FILE="${_CONFIGS_DIR_INT}/zapret.conf"
++ENV _USQUE_CONFIG_FILE="${_CONFIGS_DIR_INT}/usque.json"
+ ENV _DNSCRYPT_LOG_FILE="${_LOGS_DIR_INT}/dnscrypt-proxy.log"
+ ENV _SING_BOX_LOG_FILE="${_LOGS_DIR_INT}/sing-box.log"
+ ENV _ZAPRET_LOG_FILE="${_LOGS_DIR_INT}/zapret.log"
++ENV _USQUE_LOG_FILE="${_LOGS_DIR_INT}/usque.log"
+ 
+ ENV container="docker"
+ WORKDIR /root
+@@ -94,6 +107,13 @@ RUN echo "Y" | ./install_easy.sh
+ RUN mkdir -p $(dirname "$_ZAPRET_CONFIG_FILE_INT")
+ RUN ln -sf "$_ZAPRET_CONFIG_FILE" "$_ZAPRET_CONFIG_FILE_INT"
+ 
++# Install usque
++COPY ${USQUE_DIR} ${_USQUE_DIR_INT}
++WORKDIR ${_USQUE_DIR_INT}
++RUN mkdir -p $(dirname "$_USQUE_CONFIG_FILE_INT")
++RUN ln -sf "$_USQUE_CONFIG_FILE" "$_USQUE_CONFIG_FILE_INT"
++# RUN echo "y" | ./usque -c "$_USQUE_CONFIG_FILE_INT" register -a
++
+ WORKDIR /root
+ 
+ # Copy scripts
+diff --git a/build.sh b/build.sh
+index c7dca33..d5b034e 100755
+--- a/build.sh
++++ b/build.sh
+@@ -23,10 +23,11 @@
+ # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ # THE SOFTWARE.
+ 
+-# This script downloads sing-box, zapret and dnscrypt-proxy, builds image and starts container (provide start argument)
++# This script downloads sing-box, zapret, dnscrypt-proxy and usque (warp implementation), 
++# builds image and starts container (provide start argument)
+ # NOTE: This script must ONLY be executed OUTSIDE the container
+ 
+-_VERSION="2.2"
++_VERSION="3.0_warp"
+ 
+ # Print some cool looking ascii art :)
+ echo "                ,                     .               .      .        "
+@@ -68,11 +69,15 @@ if [ -z "$DOCKERFILE" ] ||
+     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
+     [ -z "$SING_BOX_CONFIG_FILE" ] ||
+     [ -z "$ZAPRET_CONFIG_FILE" ] ||
++    [ -z "$USQUE_CONFIG_FILE" ] ||
+     [ -z "$DNSCRYPT_DIR" ] ||
+     [ -z "$SING_BOX_DIR" ] ||
+     [ -z "$ZAPRET_DIR" ] ||
+     [ -z "$ZAPRET_FAKE_DIR" ] ||
+     [ -z "$EXTRA_FAKES" ] ||
++    [ -z "$USQUE_DIR" ] ||
++    [ -z "$USQUE_SOCKS_IP" ] ||
++    [ -z "$USQUE_SOCKS_PORT" ] ||
+     [ -z "$_CONFIGS_DIR_INT" ] ||
+     [ -z "$_LOGS_DIR_INT" ]; then
+     echo "ERROR: Some environment variables are empty / not specified"
+@@ -80,29 +85,34 @@ if [ -z "$DOCKERFILE" ] ||
+ fi
+ 
+ # Platform and architecture for programs
+-# See <https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest>
+-# and <https://github.com/SagerNet/sing-box/releases/latest> for more info
++# <https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest>
++# <https://github.com/SagerNet/sing-box/releases/latest>
++# <https://github.com/Diniboy1123/usque/releases/latest>
+ #
+-# You can specify them as environment variables PLATFORM, DNSCRYPT_ARCH, SING_BOX_ARCH
++# You can specify them as environment variables PLATFORM, DNSCRYPT_ARCH, SING_BOX_ARCH, USQUE_ARCH
+ if [ -z "$PLATFORM" ]; then PLATFORM="linux"; fi
+-if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ]; then
++if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ] || [ -z "$USQUE_ARCH" ]; then
+     arch_=$(uname -m)
+     case "$arch_" in
+     x86_64)
+         _dnscrypt_arch="x86_64"
+         _sing_box_arch="amd64"
++        _usque_arch="amd64"
+         ;;
+     i686 | i386)
+         _dnscrypt_arch="x86"
+         _sing_box_arch="386"
++        _usque_arch="386"
+         ;;
+     aarch64 | arm64 | armv8*)
+         _dnscrypt_arch="arm64"
+         _sing_box_arch="arm64"
++        _usque_arch="arm4"
+         ;;
+     arm* | sa110*)
+         _dnscrypt_arch="arm"
+         _sing_box_arch="armv7"
++        _usque_arch="armv7"
+         ;;
+     *)
+         echo "Unknown architecture: $arch_"
+@@ -111,8 +121,10 @@ if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ]; then
+     esac
+     if [ -z "$DNSCRYPT_ARCH" ]; then DNSCRYPT_ARCH="$_dnscrypt_arch"; fi
+     if [ -z "$SING_BOX_ARCH" ]; then SING_BOX_ARCH="$_sing_box_arch"; fi
++    if [ -z "$USQUE_ARCH" ]; then USQUE_ARCH="$_usque_arch"; fi
+ fi
+-echo "Working on $PLATFORM platform. dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, sing-box: $SING_BOX_ARCH"
++echo "Working on $PLATFORM platform"
++echo "dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, sing-box: $SING_BOX_ARCH, usque: $USQUE_ARCH"
+ 
+ # Tries to download / retrieve content from some URL
+ # Args:
+@@ -279,13 +291,22 @@ latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+ sleep 1s
+ check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
+ 
+-# Download extra fake files
+-if [ -f "$EXTRA_FAKES" ]; then
+-    # Skip empty / commented lines
+-    grep -vE '^\s*#|^\s*$' "$EXTRA_FAKES" | while IFS= read -r extra_url_or_file; do
+-        get_fake_file "$extra_url_or_file"
+-    done || exit 1
+-fi
++# Download usque
++url="https://api.github.com/repos/Diniboy1123/usque/releases/latest"
++echo "Checking usque version ($url)..."
++release_json=$(curl_wrapper "$url") || (echo "ERROR" && exit 1)
++download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.zip(?=")' | grep -oE ".*usque_.*_${PLATFORM}_${USQUE_ARCH}\.zip")
++latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
++sleep 1s
++check_download "$USQUE_DIR" "$download_url" "$latest_tag_name"
++
++# # Download extra fake files
++# if [ -f "$EXTRA_FAKES" ]; then
++#     # Skip empty / commented lines
++#     grep -vE '^\s*#|^\s*$' "$EXTRA_FAKES" | while IFS= read -r extra_url_or_file; do
++#         get_fake_file "$extra_url_or_file"
++#     done || exit 1
++# fi
+ 
+ # ########### #
+ # Build image #
+@@ -307,6 +328,9 @@ if ! docker build \
+     --build-arg DNSCRYPT_DIR="$DNSCRYPT_DIR" \
+     --build-arg SING_BOX_DIR="$SING_BOX_DIR" \
+     --build-arg ZAPRET_DIR="$ZAPRET_DIR" \
++    --build-arg USQUE_DIR="$USQUE_DIR" \
++    --build-arg USQUE_SOCKS_IP="$USQUE_SOCKS_IP" \
++    --build-arg USQUE_SOCKS_PORT="$USQUE_SOCKS_PORT" \
+     --build-arg _CONFIGS_DIR_INT="$_CONFIGS_DIR_INT" \
+     --build-arg _LOGS_DIR_INT="$_LOGS_DIR_INT" \
+     --tag="f33rni/zapret-sing-box-docker:$TAG_NAME" \
+diff --git a/configs/.gitignore b/configs/.gitignore
+index 6a9c78e..5d81f50 100644
+--- a/configs/.gitignore
++++ b/configs/.gitignore
+@@ -1,3 +1,4 @@
+ dnscrypt-proxy.toml
+ sing-box.json
+ zapret.conf
++usque.json
+diff --git a/container_scripts/entrypoint.sh b/container_scripts/entrypoint.sh
+index 52b3620..1c5c46b 100644
+--- a/container_scripts/entrypoint.sh
++++ b/container_scripts/entrypoint.sh
+@@ -55,6 +55,7 @@ dpkg-reconfigure -f noninteractive tzdata
+ delete_old_log "$_DNSCRYPT_LOG_FILE"
+ delete_old_log "$_SING_BOX_LOG_FILE"
+ delete_old_log "$_ZAPRET_LOG_FILE"
++delete_old_log "$_USQUE_LOG_FILE"
+ 
+ # Create log dir
+ mkdir -p "$_LOGS_DIR_INT"
+@@ -135,6 +136,12 @@ cleanup() {
+         wait "$zapret_start_watchdog_pid" 2>/dev/null
+     fi
+ 
++    # Stop usque
++    if [[ -n "${usque_pid:-}" ]]; then
++        echo "Stopping usque" | tee -a "$_USQUE_LOG_FILE"
++        kill -15 "$usque_pid"
++    fi
++
+     # Stop zapret
+     if [[ -n "${nfqws_pid:-}" ]]; then
+         echo "Stopping zapret" | tee -a "$_ZAPRET_LOG_FILE"
+@@ -150,6 +157,22 @@ zapret_start_watchdog &
+ zapret_start_watchdog_pid=$!
+ echo "zapret watchdog PID: $zapret_start_watchdog_pid"
+ 
++# Wait a bit before starting usque to make sure zapret is running
++sleep 1s
++
++# Register usque if not registered yet
++if [ ! -f "$_USQUE_CONFIG_FILE_INT" ] ||
++    [ ! -s "$_USQUE_CONFIG_FILE_INT" ] ||
++    [ "$(tr -d '[:space:]' <"$_USQUE_CONFIG_FILE_INT")" = "{}" ]; then
++    echo "y" | "$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" register -a 2>&1 | tee -a "$_USQUE_LOG_FILE"
++fi
++
++# Start usque
++"$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
++    -b "$USQUE_SOCKS_IP" -p "$USQUE_SOCKS_PORT" 2>&1 | tee -a "$_USQUE_LOG_FILE" &
++usque_pid=$!
++echo "usque PID: $usque_pid"
++
+ # Start sing-box and restart it in case of kill / error (blocking) (or exit if /stop file exists)
+ while true; do
+     "$_SING_BOX_DIR_INT/sing-box" run --config "$_SING_BOX_CONFIG_FILE_INT" 2>&1 | tee -a "$_SING_BOX_LOG_FILE"
+diff --git a/start.sh b/start.sh
+index 06cd189..b49c6c3 100755
+--- a/start.sh
++++ b/start.sh
+@@ -34,6 +34,7 @@ if [ -z "$PORTS" ] ||
+     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
+     [ -z "$SING_BOX_CONFIG_FILE" ] ||
+     [ -z "$ZAPRET_CONFIG_FILE" ] ||
++    [ -z "$USQUE_CONFIG_FILE" ] ||
+     [ -z "$DNSCRYPT_DIR" ] ||
+     [ -z "$SING_BOX_DIR" ] ||
+     [ -z "$ZAPRET_DIR" ] ||
+@@ -82,12 +83,14 @@ echo "Stopping and removing old containers"
+ dnscrypt_config_file_abs=$(readlink -f "$DNSCRYPT_CONFIG_FILE")
+ sing_box_config_file_abs=$(readlink -f "$SING_BOX_CONFIG_FILE")
+ zapret_config_file_abs=$(readlink -f "$ZAPRET_CONFIG_FILE")
++usque_config_file_abs=$(readlink -f "$USQUE_CONFIG_FILE")
+ logs_dir_abs=$(readlink -f "$LOGS_DIR")
+ 
+ # Check config files and copy .example if not exists
+ check_copy_config_file "$DNSCRYPT_DIR/example-dnscrypt-proxy.toml" "$DNSCRYPT_CONFIG_FILE"
+ check_copy_config_file "" "$SING_BOX_CONFIG_FILE"
+ check_copy_config_file "$ZAPRET_DIR/config.default" "$ZAPRET_CONFIG_FILE"
++if [ ! -f "$USQUE_CONFIG_FILE" ]; then echo "{}" >"$USQUE_CONFIG_FILE"; fi
+ 
+ # Start the container
+ run_type=()
+@@ -101,6 +104,7 @@ if ! docker run \
+     --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml:ro" \
+     --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json:ro" \
+     --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf:ro" \
++    --volume "${usque_config_file_abs}:${_CONFIGS_DIR_INT}/usque.json:rw" \
+     --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
+     --name "zapret-sing-box-docker" \
+     ${run_type[@]} "f33rni/zapret-sing-box-docker"; then
