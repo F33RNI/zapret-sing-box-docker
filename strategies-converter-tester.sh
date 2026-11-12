@@ -28,17 +28,14 @@
 
 _arg_1="${1#-}"
 _arg_1="${_arg_1#-}"
-_arg_2="${2#-}"
-_arg_2="${_arg_2#-}"
-if [[ "$_arg_1" == "test" ]] || [[ "$_arg_2" == "test" ]]; then _test=true; fi
-if [[ "$_arg_1" == "keep" ]] || [[ "$_arg_2" == "keep" ]]; then _keep=true; fi
+if [[ "$_arg_1" == "test" ]]; then _test=true; else _test=false; fi
 
-STRATEGIES_FILE=${STRATEGIES_FILE:-"strategies-converter-tester_strategies.txt"}
-LISTS_FILE=${LISTS_FILE:-"strategies-converter-tester_lists.txt"}
+STRATEGIES_FILE=${STRATEGIES_FILE:-"strategies.txt"}
+LISTS_FILE=${LISTS_FILE:-"lists.txt"}
 
-TEMP_DIR=${TEMP_DIR:-"./strategies-converter-tester_tmp"}
-STRATEGIES_DIR=${STRATEGIES_DIR:-"$TEMP_DIR/strategies"}
-LISTS_DIR=${LISTS_DIR:-"$TEMP_DIR/lists"}
+BASE_DIR=${BASE_DIR:-"./strategies-converter-tester"}
+STRATEGIES_DIR=${STRATEGIES_DIR:-"$BASE_DIR/strategies"}
+LISTS_DIR=${LISTS_DIR:-"$BASE_DIR/lists"}
 
 TEST_URL=${TEST_URL:-"https://youtube.com"}
 
@@ -49,18 +46,18 @@ ZAPRET_CONFIG=${ZAPRET_CONFIG:-"configs/zapret.conf"}
 TEST_CONFIG=${TEST_CONFIG:-"configs/zapret.conf.test"}
 RELOAD_SCRIPT=${RELOAD_SCRIPT:-"reload.sh"}
 
-if [[ "$_arg_1" == "help" ]] || ([[ $_test == false ]] && [[ $_keep == false ]]); then
-    echo "You can specify optional [test] or [keep] arguments to this script."
-    echo "Usage: $(basename $0) [test] [keep]"
+if [[ "$_arg_1" == "help" ]] || [[ $_test == false ]]; then
+    echo "You can specify optional [test] argument to this script."
+    echo "Usage: $(basename $0) [test]"
     echo -e "  test, -test, --test\ttest each strategy after parsing. Test URL can be specified"
     echo -e "\t\t\tusing TEST_URL environment variable"
-    echo -e "  keep, -keep, --keep\tdon't delete $TEMP_DIR after finish"
     echo ""
 fi
 echo "Environment variables:"
 echo "  \$STRATEGIES_FILE=$STRATEGIES_FILE"
 echo "  \$LISTS_FILE=$LISTS_FILE"
-echo "  \$TEMP_DIR=$TEMP_DIR"
+echo ""
+echo "  \$BASE_DIR=$BASE_DIR"
 echo "  \$STRATEGIES_DIR=$STRATEGIES_DIR"
 echo "  \$LISTS_DIR=$LISTS_DIR"
 echo ""
@@ -115,15 +112,22 @@ parse_bat() {
     lines=$(echo "$lines" | sed "s|=%GameFilterTCP%|=1024-65535|g" | sed "s|,%GameFilterTCP%|,1024-65535|g")
     lines=$(echo "$lines" | sed "s|=%GameFilterUDP%|=1024-65535|g" | sed "s|,%GameFilterUDP%|,1024-65535|g")
 
-    # Replace --ipset="%LISTS%ipset-all.txt" with <HOSTLIST>
-    lines=$(echo "$lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
+    # # Replace --ipset="%LISTS%ipset-all.txt" with <HOSTLIST>
+    # lines=$(echo "$lines" | sed "s|--ipset=\"%LISTS%ipset-all.txt\"|<HOSTLIST>|g")
 
-    # Replace --ipset="%LISTS%list-general.txt" with <HOSTLIST>
-    #_lines=$(echo "$lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+    # # Replace --ipset="%LISTS%list-general.txt" with <HOSTLIST>
+    # lines=$(echo "$lines" | sed "s|--ipset=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+
+    # # Replace --hostlist="%LISTS%list-general.txt" with <HOSTLIST>
+    # lines=$(echo "$lines" | sed "s|--hostlist=\"%LISTS%list-general.txt\"|<HOSTLIST>|g")
+
+    # Replace --hostlist-auto="%LISTS%hostlist-auto.txt" with <HOSTLIST>
+    lines=$(echo "$lines" | sed "s|--hostlist-auto=\"%LISTS%hostlist-auto.txt\"|<HOSTLIST>|g")
 
     # Proper lists replacement with expanding
     # 1. Read each line -> loop through arguments
-    # 2. If arguments contains list -> check if file exists -> expand it, if not, remove argument entirely
+    # 2. If arguments contains list -> check if file exists -> expand it, if not, remove argument entirely, except for
+    # --hostlist and --ipset, replace then with <HOSTLIST> placeholder
     # 3. Keep other arguments intact
     local lines_lists_replaced=""
     while IFS= read -r line; do
@@ -138,6 +142,8 @@ parse_bat() {
                 list="$(expand_list_file "$file")"
                 if [[ -n "$list" ]]; then
                     line_rebuilt+=" --hostlist-domains=$list"
+                elif [[ "$line_rebuilt" != *"<HOSTLIST>"* ]]; then
+                    line_rebuilt+=" <HOSTLIST>"
                 fi
                 continue
             fi
@@ -158,6 +164,8 @@ parse_bat() {
                 list="$(expand_list_file "$file")"
                 if [[ -n "$list" ]]; then
                     line_rebuilt+=" --ipset-ip=$list"
+                elif [[ "$line_rebuilt" != *"<HOSTLIST>"* ]]; then
+                    line_rebuilt+=" <HOSTLIST>"
                 fi
                 continue
             fi
@@ -253,7 +261,7 @@ parse_test_bat() {
     echo "Testing $TEST_URL"
     docker exec -t zapret-sing-box-docker curl --connect-timeout 1 --max-time 3 -L "$TEST_URL" >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo "WORKING! WORKING! WORKING! ^^"
+        echo "^^ WORKING! WORKING! WORKING! ^^"
     else
         echo "Not working ˙◠˙"
     fi
@@ -305,11 +313,32 @@ get_file() {
 # SCRIPT ENTRY POINT #
 ######################
 
-# Clear temp dir
-[[ $_keep == true ]] || rm -rf "$TEMP_DIR"
+# Ask to delete base directory
+if [[ -e "$BASE_DIR" ]]; then
+    while true; do
+        read -rp "Directory $BASE_DIR exists. Delete it? [y/N] " answer </dev/tty || answer=""
+
+        case "${answer,,}" in
+        y | yes)
+            echo "Deleting $BASE_DIR"
+            rm -rf "$BASE_DIR"
+            break
+            ;;
+
+        n | no | "")
+            break
+            ;;
+
+        *)
+            echo "Please answer y or n"
+            ;;
+        esac
+    done
+    echo ""
+fi
 
 # Make dirs
-mkdir -p "$TEMP_DIR"
+mkdir -p "$BASE_DIR"
 mkdir -p "$STRATEGIES_DIR"
 mkdir -p "$LISTS_DIR"
 
@@ -366,16 +395,12 @@ if [ "$_test" == true ]; then
         bash "$RELOAD_SCRIPT" >/dev/null
         echo -e "\nFinished!"
 
-        # Clear temp dir
-        [[ $_keep == true ]] || rm -rf "$TEMP_DIR"
-
         exit 0
     }
 
     echo -e "\nParsing and testing strategies from $STRATEGIES_DIR..."
     export LOG_FILE LISTS_DIR ZAPRET_DIR_INT ZAPRET_CONFIG TEST_CONFIG RELOAD_SCRIPT TEST_URL
     export _test=true
-    export _keep
     export -f expand_list_file
     export -f parse_bat
     export -f parse_test_bat
@@ -399,7 +424,4 @@ else
     export -f parse_bat
     find "$STRATEGIES_DIR" -type f -name "*.bat" -exec bash -c 'parse_bat "$0"' {} \; | tee "$LOG_FILE"
     echo "--------------------------------------------------------------------------------"
-
-    # Clear temp dir
-    [[ $_keep == true ]] || rm -rf "$TEMP_DIR"
 fi

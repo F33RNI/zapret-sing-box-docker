@@ -37,7 +37,7 @@ All configs are located in `configs/` dir
 - dnscrypt-proxy official documentation: <https://github.com/DNSCrypt/dnscrypt-proxy/wiki/Configuration>
 - zapret official documentation: <https://github.com/bol-van/zapret?tab=readme-ov-file#nfqws>
 
-Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies-converter-tester_strategies.txt` and edit `configs/zapret.conf` accordingly
+Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies.txt` and edit `configs/zapret.conf` accordingly
 
 **Or you can start the container (by calling `start.sh`) and use `strategies-converter-tester.sh` with `test` argument to test parsed strategies:**
 
@@ -45,11 +45,11 @@ Use provided `strategies-converter-tester.sh` script to fetch and parse windows 
 # Start the container
 TZ="Etc/UTC" ./start.sh
 
-# Parse and test ALL strategies from strategies-converter-tester_strategies.txt using custom URL
+# Parse and test ALL strategies from strategies.txt using custom URL
 TEST_URL="https://cp.cloudflare.com" ./strategies-converter-tester.sh test
 ```
 
-> You can specify custom URLs or local filepaths to windows .bat strategies inside strategies-converter-tester_strategies.txt and custom lists (URLs or local file paths) used by them inside strategies-converter-tester_lists.txt
+> You can specify custom URLs or local filepaths to windows .bat strategies inside strategies.txt and custom lists (URLs or local file paths) used by them inside lists.txt
 
 #### 5. Provide ports and start the container
 
@@ -126,7 +126,7 @@ So
 
 Output will be written into `logs/blockcheck.log`
 
-To edit domains, add `DOMAINS` variable to the `.env` file and run `./build.sh` script again
+To edit domains, use `DOMAINS` environment variable
 
 ---
 
@@ -172,3 +172,4 @@ sudo systemctl enable --now zapret-sing-box-docker.service
 - <https://github.com/SagerNet/sing-box>
 - <https://github.com/Flowseal/zapret-discord-youtube>
 - <https://github.com/Sergeydigl3/flowseal-strategies-backup>
+- <https://github.com/MAKAKAIglitch/zapret-discord-youtube-warp/>

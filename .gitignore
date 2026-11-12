@@ -12,3 +12,5 @@ zapret-discord-youtube-rules-converter.log*
 *.old
 *_old
 /*.tar.gz
+/strategies*/
+/lists*/
