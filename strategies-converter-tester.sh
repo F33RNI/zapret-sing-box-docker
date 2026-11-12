@@ -39,12 +39,12 @@ LISTS_DIR=${LISTS_DIR:-"$BASE_DIR/lists"}
 
 TEST_URL=${TEST_URL:-"https://youtube.com"}
 
-LOG_FILE="strategies-converter-tester.log"
-
-ZAPRET_DIR_INT="/opt/zapret"
+ZAPRET_DIR_INT=${ZAPRET_DIR_INT:-"/opt/zapret"}
 ZAPRET_CONFIG=${ZAPRET_CONFIG:-"configs/zapret.conf"}
 TEST_CONFIG=${TEST_CONFIG:-"configs/zapret.conf.test"}
 RELOAD_SCRIPT=${RELOAD_SCRIPT:-"reload.sh"}
+
+LOG_FILE="strategies-converter-tester.log"
 
 if [[ "$_arg_1" == "help" ]] || [[ $_test == false ]]; then
     echo "You can specify optional [test] argument to this script."
@@ -62,8 +62,6 @@ echo "  \$STRATEGIES_DIR=$STRATEGIES_DIR"
 echo "  \$LISTS_DIR=$LISTS_DIR"
 echo ""
 echo "  \$TEST_URL=$TEST_URL"
-echo ""
-echo "  \$LOG_FILE=$LOG_FILE"
 echo ""
 echo "  \$ZAPRET_DIR_INT=$ZAPRET_DIR_INT"
 echo "  \$ZAPRET_CONFIG=$ZAPRET_CONFIG"
