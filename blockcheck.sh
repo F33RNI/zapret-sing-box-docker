@@ -26,6 +26,8 @@
 # This script calls internal ./blockcheck.sh script if container is running
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
+LOG_FILE="blockcheck.log"
+
 # Get container ID
 container_id=$(docker ps | grep zapret-sing-box-docker | tail -n1 | awk '{print $1}')
 if [ -z "$container_id" ]; then
@@ -39,5 +41,11 @@ if [ "$(docker container inspect -f '{{.State.Status}}' $container_id)" != "runn
     exit 1
 fi
 
+_DOMAINS_OVR="$DOMAINS"
+if [ -z "$_DOMAINS_OVR" ]; then
+    source .env
+    _DOMAINS_OVR="$DOMAINS"
+fi
+
 # Call internal script
-docker exec -it -e DOMAINS="$DOMAINS" "$container_id" ./blockcheck.sh
+docker exec -it -e DOMAINS="$_DOMAINS_OVR" "$container_id" ./blockcheck.sh | tee "$LOG_FILE"
