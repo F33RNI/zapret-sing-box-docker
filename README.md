@@ -8,20 +8,20 @@ Allows you to dockerize zapret + dnscrypt-proxy and access them via any proxy pr
 
 ---
 
-### 🏗️ Installation
+## 🏗️ Installation
 
-#### 1. Install Docker
+### 1. Install Docker
 
 <https://docs.docker.com/engine/install/>
 
-#### 2. Clone repo
+### 2. Clone repo
 
 ```shell
 git clone https://github.com/F33RNI/zapret-sing-box-docker.git
 cd zapret-sing-box-docker
 ```
 
-#### 3. Build image
+### 3. Build image
 
 ```shell
 ./build.sh
@@ -29,7 +29,7 @@ cd zapret-sing-box-docker
 
 > Edit `.env` file if needed
 
-#### 4. Edit config files
+### 4. Edit config files
 
 All configs are located in `configs/` dir
 
@@ -51,7 +51,7 @@ TEST_URL="https://cp.cloudflare.com" ./strategies-converter-tester.sh test
 
 > You can specify custom URLs or local filepaths to windows .bat strategies inside strategies.txt and custom lists (URLs or local file paths) used by them inside lists.txt
 
-#### 5. Provide ports and start the container
+### 5. Provide ports and start the container
 
 ```shell
 PORTS="127.0.0.1:2080:2080" TZ="Etc/UTC" ./start.sh
@@ -72,7 +72,7 @@ tail -f logs/dnscrypt-proxy.log
 tail -f logs/sing-box.log
 ```
 
-#### 6. Wait a bit and test
+### 6. Wait a bit and test
 
 ```shell
 curl --proxy "127.0.0.1:2080" --head -L https://youtube.com
@@ -80,7 +80,7 @@ curl --proxy "127.0.0.1:2080" --head -L https://youtube.com
 
 ---
 
-### ⏹️ Stop the container
+## ⏹️ Stopping the container
 
 Simply run
 
@@ -92,7 +92,7 @@ Simply run
 
 ---
 
-### 🔃 Reload configs
+## 🔃 Reloading configs
 
 You can apply new config files without restarting the container. For that, simply run
 
@@ -108,7 +108,7 @@ You can apply new config files without restarting the container. For that, simpl
 
 ---
 
-### 🧱 Blockcheck
+## 🧱 Blockcheck
 
 Simply start the container and run
 
@@ -126,11 +126,27 @@ So
 
 Output will be written into `logs/blockcheck.log`
 
-To edit domains, use `DOMAINS` environment variable
+To edit domains, use `DOMAINS` environment variable:
+
+```shell
+DOMAINS="cloudflare.com" ./blockcheck.sh
+```
 
 ---
 
-### 🐧 Linux service **(example)**
+## 🧵 Useful patches
+
+### `dnscrypt-proxy_local_sources.patch`
+
+Use it if you want store cached dnscrypt-proxy sources and relays outside the container (e.g. if github is blocked)
+
+```shell
+git apply dnscrypt-proxy_local_sources.patch
+```
+
+---
+
+## 🐧 Linux service **(example)**
 
 `/lib/systemd/system/zapret-sing-box-docker.service`
 
@@ -165,11 +181,11 @@ sudo systemctl enable --now zapret-sing-box-docker.service
 
 ---
 
-### 🌲 Dependencies and credits
+## 🌲 Dependencies and credits
 
-- <https://github.com/bol-van/zapret>
-- <https://github.com/DNSCrypt/dnscrypt-proxy>
-- <https://github.com/SagerNet/sing-box>
-- <https://github.com/Flowseal/zapret-discord-youtube>
-- <https://github.com/Sergeydigl3/flowseal-strategies-backup>
-- <https://github.com/MAKAKAIglitch/zapret-discord-youtube-warp/>
+- <https://github.com/bol-van/zapret> 💜
+- <https://github.com/DNSCrypt/dnscrypt-proxy> 💜
+- <https://github.com/SagerNet/sing-box> 💜
+- <https://github.com/Flowseal/zapret-discord-youtube> 💜
+- <https://github.com/Sergeydigl3/flowseal-strategies-backup> 💜
+- <https://github.com/MAKAKAIglitch/zapret-discord-youtube-warp/> 💜
