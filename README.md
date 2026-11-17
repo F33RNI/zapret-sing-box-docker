@@ -37,9 +37,11 @@ All configs are located in `configs/` dir
 - dnscrypt-proxy official documentation: <https://github.com/DNSCrypt/dnscrypt-proxy/wiki/Configuration>
 - zapret official documentation: <https://github.com/bol-van/zapret?tab=readme-ov-file#nfqws>
 
-Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies.txt` and edit `configs/zapret.conf` accordingly
+Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies.txt`
+and edit `configs/zapret.conf` accordingly
 
-**Or you can start the container (by calling `start.sh`) and use `strategies-converter-tester.sh` with `test` argument to test parsed strategies:**
+**Or you can start the container (by calling `start.sh`) and use `strategies-converter-tester.sh` with `test`**
+**argument to test parsed strategies:**
 
 ```shell
 # Start the container
@@ -49,7 +51,8 @@ TZ="Etc/UTC" ./start.sh
 TEST_URL="https://cp.cloudflare.com" ./strategies-converter-tester.sh test
 ```
 
-> You can specify custom URLs or local filepaths to windows .bat strategies inside strategies.txt and custom lists (URLs or local file paths) used by them inside lists.txt
+> You can specify custom URLs or local filepaths to windows .bat strategies inside strategies.txt and custom lists
+> (URLs or local file paths) used by them inside lists.txt
 
 ### 5. Provide ports and start the container
 
@@ -134,25 +137,18 @@ DOMAINS="cloudflare.com" ./blockcheck.sh
 
 ---
 
-## 🧵 Useful patches
+## ⛺ Local dnscrypt-proxy resolvers and relays
 
-### `warp.patch`
+If you want to store cached dnscrypt-proxy resolvers and relays outside the container (e.g. if github is blocked)
 
-> NOTE: BETA VERSION
+1. Provide absolute local paths to `public-resolvers.md`, `relays.md`, `public-resolvers.minisig` and
+    `relays.md.minisig` in `dnscrypt-proxy_local_sources.patch`
 
-This adds Cloudflare WARP (<https://developers.cloudflare.com/warp-client/>) using usque implementation (<https://github.com/Diniboy1123/usque>)
+2. Apply patch:
 
-```shell
-git apply warp.patch
-```
-
-### `dnscrypt-proxy_local_sources.patch`
-
-Use it if you want store cached dnscrypt-proxy sources and relays outside the container (e.g. if github is blocked)
-
-```shell
-git apply dnscrypt-proxy_local_sources.patch
-```
+    ```shell
+    git apply dnscrypt-proxy_local_sources.patch
+    ```
 
 ---
 
