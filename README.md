@@ -137,6 +137,16 @@ DOMAINS="cloudflare.com" ./blockcheck.sh
 
 ---
 
+## ☁️ Cloudflare WARP
+
+🆕🆕🆕
+
+Check out `warp` branch for container with usque (Cloudflare WARP implementation)!
+
+🆕🆕🆕
+
+---
+
 ## ⛺ Local dnscrypt-proxy resolvers and relays
 
 If you want to store cached dnscrypt-proxy resolvers and relays outside the container (e.g. if github is blocked)
