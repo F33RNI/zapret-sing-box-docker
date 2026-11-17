@@ -71,56 +71,46 @@ fi
 ln -sf "$_DNSCRYPT_LOG_FILE" /var/log/dnscrypt-proxy.err
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service start && sleep 5
 
-# Starts zapret and saves nfqws PID
-#   NOTE: executed by zapret_start_watchdog()
-_zapret_start() {
-    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
-    nfqws_pid=$(pidof nfqws)
-    if [[ -n "${nfqws_pid}" ]]; then
-        echo "nfqws pid: $nfqws_pid" | tee -a "$_ZAPRET_LOG_FILE"
-    else
-        echo "nfqws was unable to start!" | tee -a "$_ZAPRET_LOG_FILE"
-        nfqws_pid=""
-    fi
-}
-
-# Stops zapret and clears nfqws_pid variable
-#   NOTE: executed by zapret_start_watchdog() and cleanup()
-_zapret_stop() {
+# Stops zapret
+zapret_stop() {
     "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
-    nfqws_pid=""
 }
 
 # Starts zapret and constantly checks if nfqws is running and restarts zapret if not and no /blockcheck file is present
-# (see blockcheck.sh for more info)
-# (blocking until killed or /stop file is present)
-zapret_start_watchdog() {
+# (see blockcheck.sh for more info).
+# This is needed because zapret (nfqws) can sometimes stop working on it's own.
+#
+# NOTE: blocking until killed or /stop file is present
+zapret_watchdog() {
     while true; do
         # Check for /stop file
         if [ -f "/stop" ]; then
             echo "/stop file is present. Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            _zapret_stop
+            zapret_stop
             break
         fi
 
         # Ignore if /blockcheck file is present
         if [[ -f "/blockcheck" ]]; then
             echo "zapret watchdog is paused due to /blockcheck file present" | tee -a "$_ZAPRET_LOG_FILE"
-            sleep 1
+            sleep 1s
             continue
         fi
 
         # Not started yet
+        local nfqws_pid=$(pidof nfqws)
         if [[ ! -n "${nfqws_pid:-}" ]]; then
-            echo "No nfqws. Starting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            _zapret_start
-
-        # Started -> check nfqws
-        elif ! kill -0 "$nfqws_pid" 2>/dev/null; then
-            echo "nfqws died! Restarting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            _zapret_start
+            echo "No nfqws or it died. (re)starting it..." | tee -a "$_ZAPRET_LOG_FILE"
+            "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
+            nfqws_pid=$(pidof nfqws)
+            if [[ -n "${nfqws_pid}" ]]; then
+                echo "nfqws pid: $nfqws_pid" | tee -a "$_ZAPRET_LOG_FILE"
+            else
+                echo "nfqws was unable to start!" | tee -a "$_ZAPRET_LOG_FILE"
+            fi
         fi
-        sleep 1
+
+        sleep 1s
     done
 }
 
@@ -129,16 +119,17 @@ cleanup() {
     echo "Cleaning up..."
 
     # Stop watchdog first
-    if [[ -n "${zapret_start_watchdog_pid:-}" ]] && kill -0 "$zapret_start_watchdog_pid" 2>/dev/null; then
-        echo "Stopping zapret watchdog"
-        kill "$zapret_start_watchdog_pid" 2>/dev/null
-        wait "$zapret_start_watchdog_pid" 2>/dev/null
+    if [[ -n "${zapret_watchdog_pid:-}" ]] && kill -0 "$zapret_watchdog_pid" 2>/dev/null; then
+        echo "Stopping zapret watchdog..."
+        kill "$zapret_watchdog_pid" 2>/dev/null
+        wait "$zapret_watchdog_pid" 2>/dev/null
     fi
 
     # Stop zapret
+    local nfqws_pid=$(pidof nfqws)
     if [[ -n "${nfqws_pid:-}" ]]; then
-        echo "Stopping zapret" | tee -a "$_ZAPRET_LOG_FILE"
-        _zapret_stop
+        echo "Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
+        zapret_stop
     fi
 
     if [ -f "/stop" ]; then rm /stop; fi
@@ -146,9 +137,9 @@ cleanup() {
 }
 
 # Start zapret and nfqws watchdog
-zapret_start_watchdog &
-zapret_start_watchdog_pid=$!
-echo "zapret watchdog PID: $zapret_start_watchdog_pid"
+zapret_watchdog &
+zapret_watchdog_pid=$!
+echo "zapret watchdog PID: $zapret_watchdog_pid"
 
 # Start sing-box and restart it in case of kill / error (blocking) (or exit if /stop file exists)
 while true; do
