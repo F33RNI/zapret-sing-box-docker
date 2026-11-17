@@ -37,7 +37,14 @@ All configs are located in `configs/` dir
 - usque official documentation: <https://github.com/Diniboy1123/usque?tab=readme-ov-file#usage>
 
 Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies.txt`
-and edit `configs/zapret.conf` accordingly
+and edit `configs/zapret.conf` accordingly.
+
+Use environemnt variables to specify other strategies / lists files, like so:
+
+```shell
+STRATEGIES_FILE="strategies_MAKAKAIglitch.txt" LISTS_FILE="lists_MAKAKAIglitch.txt" \
+  BASE_DIR="strategies-converter-tester_MAKAKAIglitch" ./strategies-converter-tester.sh
+```
 
 **Or you can start the container (by calling `start.sh`) and use `strategies-converter-tester.sh` with `test`**
 **argument to test parsed strategies:**

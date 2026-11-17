@@ -129,7 +129,7 @@ cleanup() {
     # Stop usque
     local usque_pid=$(pidof usque)
     if [[ -n "${usque_pid:-}" ]]; then
-        echo "Stopping usque ($usque_pid)" | tee -a "$_USQUE_LOG_FILE"
+        echo "Stopping usque ($usque_pid)..." | tee -a "$_USQUE_LOG_FILE"
         kill -15 "$usque_pid"
     fi
 
@@ -160,7 +160,7 @@ if [ ! -f "$_USQUE_CONFIG_FILE_INT" ] ||
 fi
 
 # Start usque
-echo "Starting usque" | tee -a "$_USQUE_LOG_FILE"
+echo "Starting usque..." | tee -a "$_USQUE_LOG_FILE"
 "$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
     -b "$USQUE_SOCKS_IP" -p "$USQUE_SOCKS_PORT" 2>&1 | tee -a "$_USQUE_LOG_FILE" &
 echo "usque PID: $(pidof usque)" | tee -a "$_USQUE_LOG_FILE"
