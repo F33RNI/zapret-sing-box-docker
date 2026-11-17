@@ -55,6 +55,7 @@ dpkg-reconfigure -f noninteractive tzdata
 delete_old_log "$_DNSCRYPT_LOG_FILE"
 delete_old_log "$_SING_BOX_LOG_FILE"
 delete_old_log "$_ZAPRET_LOG_FILE"
+delete_old_log "$_USQUE_LOG_FILE"
 
 # Create log dir
 mkdir -p "$_LOGS_DIR_INT"
@@ -135,6 +136,13 @@ cleanup() {
         wait "$zapret_start_watchdog_pid" 2>/dev/null
     fi
 
+    # Stop usque
+    local usque_pid=$(pidof usque)
+    if [[ -n "${usque_pid:-}" ]]; then
+        echo "Stopping usque ($usque_pid)" | tee -a "$_USQUE_LOG_FILE"
+        kill -15 "$usque_pid"
+    fi
+
     # Stop zapret
     if [[ -n "${nfqws_pid:-}" ]]; then
         echo "Stopping zapret" | tee -a "$_ZAPRET_LOG_FILE"
@@ -149,6 +157,22 @@ cleanup() {
 zapret_start_watchdog &
 zapret_start_watchdog_pid=$!
 echo "zapret watchdog PID: $zapret_start_watchdog_pid"
+
+# Wait a bit before starting usque to make sure zapret is running
+sleep 1s
+
+# Register usque if not registered yet
+if [ ! -f "$_USQUE_CONFIG_FILE_INT" ] ||
+    [ ! -s "$_USQUE_CONFIG_FILE_INT" ] ||
+    [ "$(tr -d '[:space:]' <"$_USQUE_CONFIG_FILE_INT")" = "{}" ]; then
+    echo "y" | "$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" register -a 2>&1 | tee -a "$_USQUE_LOG_FILE"
+fi
+
+# Start usque
+echo "Starting usque" | tee -a "$_USQUE_LOG_FILE"
+"$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
+    -b "$USQUE_SOCKS_IP" -p "$USQUE_SOCKS_PORT" 2>&1 | tee -a "$_USQUE_LOG_FILE" &
+echo "usque PID: $(pidof usque)" | tee -a "$_USQUE_LOG_FILE"
 
 # Start sing-box and restart it in case of kill / error (blocking) (or exit if /stop file exists)
 while true; do

@@ -53,6 +53,17 @@ echo "Restarting dnscrypt-proxy"
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
 sleep 3
 
+# Restarting usque
+usque_pid=$(pidof usque)
+if [[ -n "${usque_pid:-}" ]]; then
+    echo "Stopping usque ($usque_pid)" | tee -a "$_USQUE_LOG_FILE"
+    kill -15 "$usque_pid"
+fi
+echo "Starting usque" | tee -a "$_USQUE_LOG_FILE"
+"$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
+    -b "$USQUE_SOCKS_IP" -p "$USQUE_SOCKS_PORT" 2>&1 | tee -a "$_USQUE_LOG_FILE" &
+echo "usque PID: $(pidof usque)" | tee -a "$_USQUE_LOG_FILE"
+
 # Send SIGTERM to sing-box to restart it
 sing_box_pid=$(pidof "sing-box")
 if [[ $sing_box_pid ]]; then

@@ -1,10 +1,9 @@
 diff --git a/start.sh b/start.sh
-index 06cd189..efc5712 100755
 --- a/start.sh
 +++ b/start.sh
-@@ -102,6 +102,10 @@ if ! docker run \
-     --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json:ro" \
+@@ -106,6 +106,10 @@ if ! docker run \
      --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf:ro" \
+     --volume "${usque_config_file_abs}:${_CONFIGS_DIR_INT}/usque.json:rw" \
      --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
 +    --volume "dnscrypt-proxy/resolvers/public-resolvers.md:/opt/dnscrypt-proxy/resolvers/public-resolvers.md:ro" \
 +    --volume "dnscrypt-proxy/resolvers/relays.md:/opt/dnscrypt-proxy/resolvers/relays.md:ro" \

@@ -34,6 +34,7 @@ if [ -z "$PORTS" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$SING_BOX_CONFIG_FILE" ] ||
     [ -z "$ZAPRET_CONFIG_FILE" ] ||
+    [ -z "$USQUE_CONFIG_FILE" ] ||
     [ -z "$DNSCRYPT_DIR" ] ||
     [ -z "$SING_BOX_DIR" ] ||
     [ -z "$ZAPRET_DIR" ] ||
@@ -82,12 +83,14 @@ echo "Stopping and removing old containers"
 dnscrypt_config_file_abs=$(readlink -f "$DNSCRYPT_CONFIG_FILE")
 sing_box_config_file_abs=$(readlink -f "$SING_BOX_CONFIG_FILE")
 zapret_config_file_abs=$(readlink -f "$ZAPRET_CONFIG_FILE")
+usque_config_file_abs=$(readlink -f "$USQUE_CONFIG_FILE")
 logs_dir_abs=$(readlink -f "$LOGS_DIR")
 
 # Check config files and copy .example if not exists
 check_copy_config_file "$DNSCRYPT_DIR/example-dnscrypt-proxy.toml" "$DNSCRYPT_CONFIG_FILE"
 check_copy_config_file "" "$SING_BOX_CONFIG_FILE"
 check_copy_config_file "$ZAPRET_DIR/config.default" "$ZAPRET_CONFIG_FILE"
+if [ ! -f "$USQUE_CONFIG_FILE" ]; then echo "{}" >"$USQUE_CONFIG_FILE"; fi
 
 # Start the container
 run_type=()
@@ -101,6 +104,7 @@ if ! docker run \
     --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml:ro" \
     --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json:ro" \
     --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf:ro" \
+    --volume "${usque_config_file_abs}:${_CONFIGS_DIR_INT}/usque.json:rw" \
     --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
     --name "zapret-sing-box-docker" \
     ${run_type[@]} "f33rni/zapret-sing-box-docker"; then

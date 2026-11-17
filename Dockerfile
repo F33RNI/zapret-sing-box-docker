@@ -28,11 +28,13 @@ LABEL maintainer="Fern Lane"
 ENV _DNSCRYPT_DIR_INT="/opt/dnscrypt-proxy"
 ENV _SING_BOX_DIR_INT="/opt/sing-box"
 ENV _ZAPRET_DIR_INT="/opt/zapret"
+ENV _USQUE_DIR_INT="/opt/usque"
 
 # Internal paths to symbolic links of config files inside the container
 ENV _DNSCRYPT_CONFIG_FILE_INT="${_DNSCRYPT_DIR_INT}/dnscrypt-proxy.toml"
 ENV _SING_BOX_CONFIG_FILE_INT="${_SING_BOX_DIR_INT}/config.json"
 ENV _ZAPRET_CONFIG_FILE_INT="${_ZAPRET_DIR_INT}/config"
+ENV _USQUE_CONFIG_FILE_INT="${_USQUE_DIR_INT}/usque.json"
 
 # Arguments from build script or docker-compose.yml
 ARG DNSCRYPT_DIR
@@ -44,6 +46,15 @@ ENV SING_BOX_DIR=${SING_BOX_DIR}
 ARG ZAPRET_DIR
 RUN test -n "$ZAPRET_DIR"
 ENV ZAPRET_DIR=${ZAPRET_DIR}
+ARG USQUE_DIR
+RUN test -n "$USQUE_DIR"
+ENV USQUE_DIR=${USQUE_DIR}
+ARG USQUE_SOCKS_IP
+RUN test -n "$USQUE_SOCKS_IP"
+ENV USQUE_SOCKS_IP=${USQUE_SOCKS_IP}
+ARG USQUE_SOCKS_PORT
+RUN test -n "$USQUE_SOCKS_PORT"
+ENV USQUE_SOCKS_PORT=${USQUE_SOCKS_PORT}
 ARG _CONFIGS_DIR_INT
 RUN test -n "$_CONFIGS_DIR_INT"
 ENV _CONFIGS_DIR_INT=${_CONFIGS_DIR_INT}
@@ -55,9 +66,11 @@ ENV _LOGS_DIR_INT=${_LOGS_DIR_INT}
 ENV _DNSCRYPT_CONFIG_FILE="${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml"
 ENV _SING_BOX_CONFIG_FILE="${_CONFIGS_DIR_INT}/sing-box.json"
 ENV _ZAPRET_CONFIG_FILE="${_CONFIGS_DIR_INT}/zapret.conf"
+ENV _USQUE_CONFIG_FILE="${_CONFIGS_DIR_INT}/usque.json"
 ENV _DNSCRYPT_LOG_FILE="${_LOGS_DIR_INT}/dnscrypt-proxy.log"
 ENV _SING_BOX_LOG_FILE="${_LOGS_DIR_INT}/sing-box.log"
 ENV _ZAPRET_LOG_FILE="${_LOGS_DIR_INT}/zapret.log"
+ENV _USQUE_LOG_FILE="${_LOGS_DIR_INT}/usque.log"
 
 ENV container="docker"
 WORKDIR /root
@@ -93,6 +106,13 @@ RUN echo "1" | ./install_prereq.sh
 RUN echo "Y" | ./install_easy.sh
 RUN mkdir -p $(dirname "$_ZAPRET_CONFIG_FILE_INT")
 RUN ln -sf "$_ZAPRET_CONFIG_FILE" "$_ZAPRET_CONFIG_FILE_INT"
+
+# Install usque
+COPY ${USQUE_DIR} ${_USQUE_DIR_INT}
+WORKDIR ${_USQUE_DIR_INT}
+RUN mkdir -p $(dirname "$_USQUE_CONFIG_FILE_INT")
+RUN ln -sf "$_USQUE_CONFIG_FILE" "$_USQUE_CONFIG_FILE_INT"
+# RUN echo "y" | ./usque -c "$_USQUE_CONFIG_FILE_INT" register -a
 
 WORKDIR /root
 

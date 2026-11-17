@@ -23,10 +23,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script downloads sing-box, zapret and dnscrypt-proxy, builds image and starts container (provide start argument)
+# This script downloads sing-box, zapret, dnscrypt-proxy and usque (warp implementation), 
+# builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-_VERSION="2.2"
+_VERSION="3.0_warp"
 
 # Print some cool looking ascii art :)
 echo "                ,                     .               .      .        "
@@ -68,11 +69,15 @@ if [ -z "$DOCKERFILE" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$SING_BOX_CONFIG_FILE" ] ||
     [ -z "$ZAPRET_CONFIG_FILE" ] ||
+    [ -z "$USQUE_CONFIG_FILE" ] ||
     [ -z "$DNSCRYPT_DIR" ] ||
     [ -z "$SING_BOX_DIR" ] ||
     [ -z "$ZAPRET_DIR" ] ||
     [ -z "$ZAPRET_FAKE_DIR" ] ||
     [ -z "$EXTRA_FAKES" ] ||
+    [ -z "$USQUE_DIR" ] ||
+    [ -z "$USQUE_SOCKS_IP" ] ||
+    [ -z "$USQUE_SOCKS_PORT" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
@@ -80,29 +85,34 @@ if [ -z "$DOCKERFILE" ] ||
 fi
 
 # Platform and architecture for programs
-# See <https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest>
-# and <https://github.com/SagerNet/sing-box/releases/latest> for more info
+# <https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest>
+# <https://github.com/SagerNet/sing-box/releases/latest>
+# <https://github.com/Diniboy1123/usque/releases/latest>
 #
-# You can specify them as environment variables PLATFORM, DNSCRYPT_ARCH, SING_BOX_ARCH
+# You can specify them as environment variables PLATFORM, DNSCRYPT_ARCH, SING_BOX_ARCH, USQUE_ARCH
 if [ -z "$PLATFORM" ]; then PLATFORM="linux"; fi
-if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ]; then
+if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ] || [ -z "$USQUE_ARCH" ]; then
     arch_=$(uname -m)
     case "$arch_" in
     x86_64)
         _dnscrypt_arch="x86_64"
         _sing_box_arch="amd64"
+        _usque_arch="amd64"
         ;;
     i686 | i386)
         _dnscrypt_arch="x86"
         _sing_box_arch="386"
+        _usque_arch="386"
         ;;
     aarch64 | arm64 | armv8*)
         _dnscrypt_arch="arm64"
         _sing_box_arch="arm64"
+        _usque_arch="arm4"
         ;;
     arm* | sa110*)
         _dnscrypt_arch="arm"
         _sing_box_arch="armv7"
+        _usque_arch="armv7"
         ;;
     *)
         echo "Unknown architecture: $arch_"
@@ -111,8 +121,10 @@ if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$SING_BOX_ARCH" ]; then
     esac
     if [ -z "$DNSCRYPT_ARCH" ]; then DNSCRYPT_ARCH="$_dnscrypt_arch"; fi
     if [ -z "$SING_BOX_ARCH" ]; then SING_BOX_ARCH="$_sing_box_arch"; fi
+    if [ -z "$USQUE_ARCH" ]; then USQUE_ARCH="$_usque_arch"; fi
 fi
-echo "Working on $PLATFORM platform. dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, sing-box: $SING_BOX_ARCH"
+echo "Working on $PLATFORM platform"
+echo "dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, sing-box: $SING_BOX_ARCH, usque: $USQUE_ARCH"
 
 # Tries to download / retrieve content from some URL
 # Args:
@@ -279,6 +291,15 @@ latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 sleep 1s
 check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 
+# Download usque
+url="https://api.github.com/repos/Diniboy1123/usque/releases/latest"
+echo "Checking usque version ($url)..."
+release_json=$(curl_wrapper "$url") || (echo "ERROR" && exit 1)
+download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.zip(?=")' | grep -oE ".*usque_.*_${PLATFORM}_${USQUE_ARCH}\.zip")
+latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+sleep 1s
+check_download "$USQUE_DIR" "$download_url" "$latest_tag_name"
+
 # Download extra fake files
 if [ -f "$EXTRA_FAKES" ]; then
     # Skip empty / commented lines
@@ -307,6 +328,9 @@ if ! docker build \
     --build-arg DNSCRYPT_DIR="$DNSCRYPT_DIR" \
     --build-arg SING_BOX_DIR="$SING_BOX_DIR" \
     --build-arg ZAPRET_DIR="$ZAPRET_DIR" \
+    --build-arg USQUE_DIR="$USQUE_DIR" \
+    --build-arg USQUE_SOCKS_IP="$USQUE_SOCKS_IP" \
+    --build-arg USQUE_SOCKS_PORT="$USQUE_SOCKS_PORT" \
     --build-arg _CONFIGS_DIR_INT="$_CONFIGS_DIR_INT" \
     --build-arg _LOGS_DIR_INT="$_LOGS_DIR_INT" \
     --tag="f33rni/zapret-sing-box-docker:$TAG_NAME" \

@@ -1,10 +1,8 @@
-# 📦 zapret-sing-box-docker
+# 📦 zapret-sing-box-docker [warp branch]
 
-## Docker image with zapret, dnscrypt-proxy and sing-box
+## Docker image with zapret, dnscrypt-proxy, sing-box and usque (Cloudflare WARP implementation)
 
-Allows you to dockerize zapret + dnscrypt-proxy and access them via any proxy protocol supported by sing-box
-
-> Based on <https://github.com/F33RNI/zapret-v2ray-docker> [deprecated]
+Allows you to dockerize zapret + usque + dnscrypt-proxy and access them via any proxy protocol supported by sing-box
 
 ---
 
@@ -17,7 +15,7 @@ Allows you to dockerize zapret + dnscrypt-proxy and access them via any proxy pr
 ### 2. Clone repo
 
 ```shell
-git clone https://github.com/F33RNI/zapret-sing-box-docker.git
+git clone -b warp https://github.com/F33RNI/zapret-sing-box-docker.git
 cd zapret-sing-box-docker
 ```
 
@@ -36,6 +34,7 @@ All configs are located in `configs/` dir
 - sing-box official documentation: <https://sing-box.sagernet.org/configuration/>
 - dnscrypt-proxy official documentation: <https://github.com/DNSCrypt/dnscrypt-proxy/wiki/Configuration>
 - zapret official documentation: <https://github.com/bol-van/zapret?tab=readme-ov-file#nfqws>
+- usque official documentation: <https://github.com/Diniboy1123/usque?tab=readme-ov-file#usage>
 
 Use provided `strategies-converter-tester.sh` script to fetch and parse windows .bat strategies from `strategies.txt`
 and edit `configs/zapret.conf` accordingly
@@ -57,10 +56,11 @@ TEST_URL="https://cp.cloudflare.com" ./strategies-converter-tester.sh test
 ### 5. Provide ports and start the container
 
 ```shell
-PORTS="127.0.0.1:2080:2080" TZ="Etc/UTC" ./start.sh
+PORTS="127.0.0.1:2080:2080 127.0.0.1:2090:2090" TZ="Etc/UTC" ./start.sh
 ```
 
-> Please see comments in the `.env` file for more info
+> Please see comments in the `.env` file for more info.
+> NOTE: Default internal port for usque socks proxy is 2090
 >
 > NOTE: To start without -d / --detach arg, use  `./start.sh nd` / `./start.sh nodetach` instead
 
@@ -73,12 +73,21 @@ tail -f logs/dnscrypt-proxy.log
 
 # Check sing-box logs
 tail -f logs/sing-box.log
+
+# Check usque logs
+tail -f logs/usque.log
 ```
 
 ### 6. Wait a bit and test
 
 ```shell
 curl --proxy "127.0.0.1:2080" --head -L https://youtube.com
+```
+
+OR
+
+```shell
+curl --proxy "127.0.0.1:2090" --head -L https://youtube.com
 ```
 
 ---
@@ -195,3 +204,4 @@ sudo systemctl enable --now zapret-sing-box-docker.service
 - <https://github.com/Flowseal/zapret-discord-youtube> 💜
 - <https://github.com/Sergeydigl3/flowseal-strategies-backup> 💜
 - <https://github.com/MAKAKAIglitch/zapret-discord-youtube-warp/> 💜
+- <https://github.com/Diniboy1123/usque/> 💜
