@@ -2,9 +2,9 @@ name: Docker Image CI (Test)
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "warp"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "warp"]
 
 jobs:
   build:
