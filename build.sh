@@ -23,7 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script downloads sing-box, zapret, dnscrypt-proxy and usque (warp implementation), 
+# This script downloads sing-box, zapret, dnscrypt-proxy and usque (warp implementation),
 # builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
@@ -294,7 +294,10 @@ check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 # Download usque
 url="https://api.github.com/repos/Diniboy1123/usque/releases/latest"
 echo "Checking usque version ($url)..."
-release_json=$(curl_wrapper "$url") || (echo "ERROR" && exit 1)
+release_json=$(curl_wrapper "$url") || {
+    echo "ERROR"
+    exit 1
+}
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.zip(?=")' | grep -oE ".*usque_.*_${PLATFORM}_${USQUE_ARCH}\.zip")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 sleep 1s
