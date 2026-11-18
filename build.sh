@@ -238,8 +238,12 @@ get_fake_file() {
     fi
     local _filename=$(basename "$fake_path")
     if [[ "$fake_path" =~ ^https?:// ]]; then
-        echo "Downloading $fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
-        if ! curl_wrapper "$fake_path" "${ZAPRET_FAKE_DIR}/${_filename}"; then exit 1; fi
+        if [ -f "${ZAPRET_FAKE_DIR}/${_filename}" ]; then
+            echo "Skipping ${_filename} (${ZAPRET_FAKE_DIR}/${_filename} already exists)"
+        else
+            echo "Downloading $fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
+            if ! curl_wrapper "$fake_path" "${ZAPRET_FAKE_DIR}/${_filename}"; then exit 1; fi
+        fi
     elif [ -f "$fake_path" ]; then
         echo "Copying $fake_path -> ${ZAPRET_FAKE_DIR}/${_filename}..."
         cp "$fake_path" "${ZAPRET_FAKE_DIR}"
