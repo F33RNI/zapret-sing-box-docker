@@ -46,7 +46,7 @@ touch /blockcheck
 cd $_ZAPRET_DIR_INT
 
 # Stop zapret first
-echo "Stopping zapret"
+echo "Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
 # Prints log file, starts zapret and removes /blockcheck file to restore watchdog
@@ -54,7 +54,7 @@ cleanup() {
     echo -e "\n\nLogs file: $log_file"
 
     # Start zapret back
-    echo -e "\nStarting zapret back"
+    echo -e "\nStarting zapret back..." | tee -a "$_ZAPRET_LOG_FILE"
     "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
 
     # Restore zapret watchdog (see entrypoint.sh for more info)

@@ -33,7 +33,7 @@ if [[ "$container" != "docker" ]]; then
 fi
 
 # Restart zapret by stopping it (will be restarted by watchdog. See entrypoint.sh for more info)
-echo "Restarting zapret"
+echo "Restarting zapret..." | tee -a "$_ZAPRET_LOG_FILE"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
 # Wait for zapret (nfqws) to start in 5 seconds
@@ -48,14 +48,14 @@ if [[ ! -n "${nfqws_pid:-}" ]]; then
 fi
 
 # Restart dnscrypt-proxy and wait a bit to make sure it's started
-echo "Restarting dnscrypt-proxy"
+echo "Restarting dnscrypt-proxy..." | tee -a "$_DNSCRYPT_LOG_FILE"
 #cp /etc/resolv.conf.override /etc/resolv.conf
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
 sleep 3
 
-# Restarting usque
-usque_pid=$(pidof usque)
-if [[ -n "${usque_pid:-}" ]]; then
+# Restart usque
+usque_pid=$(pidof usque 2>/dev/null) || usque_pid=
+if [[ -n "$usque_pid" ]]; then
     echo "Stopping usque ($usque_pid)..." | tee -a "$_USQUE_LOG_FILE"
     kill -15 "$usque_pid"
     while kill -0 "$usque_pid" 2>/dev/null; do sleep 1s; done
@@ -66,10 +66,10 @@ echo "Starting usque..." | tee -a "$_USQUE_LOG_FILE"
 echo "usque PID: $(pidof usque)" | tee -a "$_USQUE_LOG_FILE"
 
 # Send SIGTERM to sing-box to restart it
-sing_box_pid=$(pidof "sing-box")
-if [[ $sing_box_pid ]]; then
-    echo "Restarting sing-box"
+sing_box_pid=$(pidof sing-box 2>/dev/null) || sing_box_pid=
+if [[ -n "$sing_box_pid" ]]; then
+    echo "Restarting sing-box..." | tee -a "$_SING_BOX_LOG_FILE"
     kill -15 "$sing_box_pid"
 else
-    echo "sing-box not running! Wait for it to start or see log file for errors"
+    echo "sing-box not running! Wait for it to start or see log file for errors" | tee -a "$_SING_BOX_LOG_FILE"
 fi
