@@ -131,6 +131,7 @@ cleanup() {
     if [[ -n "${usque_pid:-}" ]]; then
         echo "Stopping usque ($usque_pid)..." | tee -a "$_USQUE_LOG_FILE"
         kill -15 "$usque_pid"
+        while kill -0 "$usque_pid" 2>/dev/null; do sleep 1s; done
     fi
 
     # Stop zapret

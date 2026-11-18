@@ -27,7 +27,7 @@
 # builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-_VERSION="3.0_warp"
+_VERSION="3.1_warp"
 
 # Print some cool looking ascii art :)
 echo "                ,                     .               .      .        "

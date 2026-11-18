@@ -58,6 +58,7 @@ usque_pid=$(pidof usque)
 if [[ -n "${usque_pid:-}" ]]; then
     echo "Stopping usque ($usque_pid)..." | tee -a "$_USQUE_LOG_FILE"
     kill -15 "$usque_pid"
+    while kill -0 "$usque_pid" 2>/dev/null; do sleep 1s; done
 fi
 echo "Starting usque..." | tee -a "$_USQUE_LOG_FILE"
 "$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
