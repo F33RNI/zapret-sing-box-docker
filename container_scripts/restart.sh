@@ -53,17 +53,12 @@ echo "Restarting dnscrypt-proxy..." | tee -a "$_DNSCRYPT_LOG_FILE"
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
 sleep 3
 
-# Restart usque
+# Restart usque by stopping it (will be restarted by watchdog. See entrypoint.sh for more info)
 usque_pid=$(pidof usque 2>/dev/null) || usque_pid=
 if [[ -n "$usque_pid" ]]; then
-    echo "Stopping usque ($usque_pid)..." | tee -a "$_USQUE_LOG_FILE"
+    echo "Restarting usque..." | tee -a "$_USQUE_LOG_FILE"
     kill -15 "$usque_pid"
-    while kill -0 "$usque_pid" 2>/dev/null; do sleep 1s; done
 fi
-echo "Starting usque..." | tee -a "$_USQUE_LOG_FILE"
-"$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
-    -b "$USQUE_SOCKS_IP" -p "$USQUE_SOCKS_PORT" 2>&1 | tee -a "$_USQUE_LOG_FILE" &
-echo "usque PID: $(pidof usque)" | tee -a "$_USQUE_LOG_FILE"
 
 # Send SIGTERM to sing-box to restart it
 sing_box_pid=$(pidof sing-box 2>/dev/null) || sing_box_pid=

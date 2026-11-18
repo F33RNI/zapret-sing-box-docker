@@ -112,11 +112,38 @@ watchdog() {
 zapret_start() { "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start; }
 zapret_stop() { "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop; }
 
-# Stops zapret, it's watchdog, removes /stop file if exists and exists with 0
+# Functions to start / stop usque
+usque_start() {
+    "$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" "$USQUE_PROXY_MODE" --always-reconnect \
+        -b "$USQUE_PROXY_IP" -p "$USQUE_PROXY_PORT" 2>&1 &
+}
+usque_stop() {
+    local usque_pid=$(pidof usque 2>/dev/null) || usque_pid=
+    if [[ -n "$usque_pid" ]]; then
+        kill -15 "$usque_pid"
+        while kill -0 "$usque_pid" 2>/dev/null; do sleep 1s; done
+    fi
+}
+
+# Stops zapret, usque, their watchdogs, removes /stop file if exists and exists with 0
 cleanup() {
     echo "Cleaning up..."
 
-    # Stop watchdog first
+    # Stop usque watchdog first
+    if [[ -n "${usque_watchdog_pid:-}" ]] && kill -0 "$usque_watchdog_pid" 2>/dev/null; then
+        echo "Stopping usque watchdog..." | tee -a "$_USQUE_LOG_FILE"
+        kill "$usque_watchdog_pid" 2>/dev/null
+        wait "$usque_watchdog_pid" 2>/dev/null
+    fi
+
+    # Stop usque
+    local usque_pid=$(pidof usque 2>/dev/null) || usque_pid=
+    if [[ -n "$usque_pid" ]]; then
+        echo "Stopping usque..." | tee -a "$_USQUE_LOG_FILE"
+        usque_stop | tee -a "$_USQUE_LOG_FILE"
+    fi
+
+    # Stop zapret watchdog first
     if [[ -n "${zapret_watchdog_pid:-}" ]] && kill -0 "$zapret_watchdog_pid" 2>/dev/null; then
         echo "Stopping zapret watchdog..." | tee -a "$_ZAPRET_LOG_FILE"
         kill "$zapret_watchdog_pid" 2>/dev/null
@@ -169,21 +196,21 @@ watchdog "nfqws" zapret_start zapret_stop "$_ZAPRET_LOG_FILE" true &
 zapret_watchdog_pid=$!
 echo "zapret watchdog PID: $zapret_watchdog_pid" | tee -a "$_ZAPRET_LOG_FILE"
 
-# Wait a bit before starting usque to make sure zapret is running
-sleep 1s
+# Wait a bit to make sure zapret is running
+sleep 2s
 
 # Register usque if not registered yet
 if [ ! -f "$_USQUE_CONFIG_FILE_INT" ] ||
     [ ! -s "$_USQUE_CONFIG_FILE_INT" ] ||
     [ "$(tr -d '[:space:]' <"$_USQUE_CONFIG_FILE_INT")" = "{}" ]; then
+    echo "Registering warp..." | tee -a "$_USQUE_LOG_FILE"
     echo "y" | "$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" register -a 2>&1 | tee -a "$_USQUE_LOG_FILE"
 fi
 
-# Start usque
-echo "Starting usque..." | tee -a "$_USQUE_LOG_FILE"
-"$_USQUE_DIR_INT/usque" -c "$_USQUE_CONFIG_FILE_INT" socks --always-reconnect \
-    -b "$USQUE_SOCKS_IP" -p "$USQUE_SOCKS_PORT" 2>&1 | tee -a "$_USQUE_LOG_FILE" &
-echo "usque PID: $(pidof usque)" | tee -a "$_USQUE_LOG_FILE"
+# Start usque and it's watchdog
+watchdog "usque" usque_start usque_stop "$_USQUE_LOG_FILE" true &
+usque_watchdog_pid=$!
+echo "usque watchdog PID: $usque_watchdog_pid" | tee -a "$_USQUE_LOG_FILE"
 
 # Start sing-box and restart it in case of kill / error (blocking) (or exit if /stop file exists)
 while true; do

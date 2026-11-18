@@ -38,7 +38,7 @@ touch /stop
 # Stop usque
 usque_pid=$(pidof usque 2>/dev/null) || usque_pid=
 if [[ -n "$usque_pid" ]]; then
-    echo "Stopping usque ($usque_pid)..." | tee -a "$_USQUE_LOG_FILE"
+    echo "Stopping usque..." | tee -a "$_USQUE_LOG_FILE"
     kill -15 "$usque_pid"
 fi
 

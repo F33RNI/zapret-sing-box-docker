@@ -35,6 +35,9 @@ if [ -z "$PORTS" ] ||
     [ -z "$SING_BOX_CONFIG_FILE" ] ||
     [ -z "$ZAPRET_CONFIG_FILE" ] ||
     [ -z "$USQUE_CONFIG_FILE" ] ||
+    [ -z "$USQUE_PROXY_MODE" ] ||
+    [ -z "$USQUE_PROXY_IP" ] ||
+    [ -z "$USQUE_PROXY_PORT" ] ||
     [ -z "$DNSCRYPT_DIR" ] ||
     [ -z "$SING_BOX_DIR" ] ||
     [ -z "$ZAPRET_DIR" ] ||
@@ -101,6 +104,9 @@ if ! docker run \
     --cap-add NET_ADMIN \
     $ports_arg \
     --env TZ=${TZ} \
+    --env USQUE_PROXY_MODE="$USQUE_PROXY_MODE" \
+    --env USQUE_PROXY_IP="$USQUE_PROXY_IP" \
+    --env USQUE_PROXY_PORT="$USQUE_PROXY_PORT" \
     --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml:ro" \
     --volume "${sing_box_config_file_abs}:${_CONFIGS_DIR_INT}/sing-box.json:ro" \
     --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf:ro" \

@@ -27,7 +27,7 @@
 # builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-_VERSION="3.2_warp"
+_VERSION="3.4_warp"
 
 # Print some cool looking ascii art :)
 echo "                ,                     .               .      .        "
@@ -76,8 +76,9 @@ if [ -z "$DOCKERFILE" ] ||
     [ -z "$ZAPRET_FAKE_DIR" ] ||
     [ -z "$EXTRA_FAKES" ] ||
     [ -z "$USQUE_DIR" ] ||
-    [ -z "$USQUE_SOCKS_IP" ] ||
-    [ -z "$USQUE_SOCKS_PORT" ] ||
+    [ -z "$USQUE_PROXY_MODE" ] ||
+    [ -z "$USQUE_PROXY_IP" ] ||
+    [ -z "$USQUE_PROXY_PORT" ] ||
     [ -z "$_CONFIGS_DIR_INT" ] ||
     [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
@@ -345,8 +346,9 @@ if ! docker build \
     --build-arg SING_BOX_DIR="$SING_BOX_DIR" \
     --build-arg ZAPRET_DIR="$ZAPRET_DIR" \
     --build-arg USQUE_DIR="$USQUE_DIR" \
-    --build-arg USQUE_SOCKS_IP="$USQUE_SOCKS_IP" \
-    --build-arg USQUE_SOCKS_PORT="$USQUE_SOCKS_PORT" \
+    --build-arg USQUE_PROXY_MODE="$USQUE_PROXY_MODE" \
+    --build-arg USQUE_PROXY_IP="$USQUE_PROXY_IP" \
+    --build-arg USQUE_PROXY_PORT="$USQUE_PROXY_PORT" \
     --build-arg _CONFIGS_DIR_INT="$_CONFIGS_DIR_INT" \
     --build-arg _LOGS_DIR_INT="$_LOGS_DIR_INT" \
     --tag="f33rni/zapret-sing-box-docker:$TAG_NAME" \

@@ -1,7 +1,7 @@
 diff --git a/start.sh b/start.sh
 --- a/start.sh
 +++ b/start.sh
-@@ -106,6 +106,10 @@ if ! docker run \
+@@ -112,6 +112,10 @@ if ! docker run \
      --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf:ro" \
      --volume "${usque_config_file_abs}:${_CONFIGS_DIR_INT}/usque.json:rw" \
      --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
