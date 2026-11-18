@@ -43,6 +43,98 @@ delete_old_log() {
     fi
 }
 
+# Monitors if PID of process exists and calls f_start() if not. Also calls f_stop() if "/stop" file is present
+# NOTE: Blocking until interrupted / killed or "/stop" file is present
+# Args:
+#   1: Process name (e.g. nfqws)
+#   2: Non-blocking function to (re)start the process
+#   3: Function to stop the process
+#   4: Path to log file
+#   5: true to pause if /blockcheck is present
+watchdog() {
+    local proc_name=$1
+    local f_start=$2
+    local f_stop=$3
+    local log_file=$4
+    local pause_on_blockcheck=${5:-false}
+    local proc_pid
+    local start_exit_code
+
+    while true; do
+        # Check for /stop file
+        if [ -f "/stop" ]; then
+            echo "[$proc_name watchdog] /stop file is present. Stopping ${proc_name}..." | tee -a "$log_file"
+
+            # Try to run stop function
+            if "$f_stop" > >(tee -a "$log_file") 2>&1; then
+                return 0
+            else
+                local stop_exit_code=$?
+                echo "[$proc_name watchdog] Stop function failed (exit code: $stop_exit_code)!" | tee -a "$log_file"
+                return "$stop_exit_code"
+            fi
+        fi
+
+        # Ignore if /blockcheck file is present
+        if [[ "$pause_on_blockcheck" == "true" && -f "/blockcheck" ]]; then
+            echo "[$proc_name watchdog] Paused due to /blockcheck file present" | tee -a "$log_file"
+            sleep 1s
+            continue
+        fi
+
+        # Check if process is running
+        proc_pid=$(pidof "$proc_name" 2>/dev/null) || proc_pid=
+        if [[ -z "$proc_pid" ]]; then
+            echo "[$proc_name watchdog] No $proc_name or it died. (Re)starting ${proc_name}..." | tee -a "$log_file"
+
+            # Try to start it
+            if "$f_start" > >(tee -a "$log_file") 2>&1; then
+                :
+            else
+                start_exit_code=$?
+                echo "[$proc_name watchdog] Start function failed (exit code: $start_exit_code)!" | tee -a "$log_file"
+            fi
+
+            # Check if process started
+            proc_pid=$(pidof "$proc_name" 2>/dev/null) || proc_pid=
+            if [[ -n "$proc_pid" ]]; then
+                echo "[$proc_name watchdog] $proc_name PID: $proc_pid" | tee -a "$log_file"
+            else
+                echo "[$proc_name watchdog] $proc_name was unable to start!" | tee -a "$log_file"
+            fi
+        fi
+
+        sleep 1s
+    done
+}
+
+# Functions to start / stop zapret
+zapret_start() { "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start; }
+zapret_stop() { "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop; }
+
+# Stops zapret, it's watchdog, removes /stop file if exists and exists with 0
+cleanup() {
+    echo "Cleaning up..."
+
+    # Stop watchdog first
+    if [[ -n "${zapret_watchdog_pid:-}" ]] && kill -0 "$zapret_watchdog_pid" 2>/dev/null; then
+        echo "Stopping zapret watchdog..." | tee -a "$_ZAPRET_LOG_FILE"
+        kill "$zapret_watchdog_pid" 2>/dev/null
+        wait "$zapret_watchdog_pid" 2>/dev/null
+    fi
+
+    # Stop zapret
+    local nfqws_pid=$(pidof nfqws 2>/dev/null) || nfqws_pid=
+    if [[ -n "$nfqws_pid" ]]; then
+        echo "Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
+        zapret_stop | tee -a "$_ZAPRET_LOG_FILE"
+    fi
+
+    # Remove /stop file and exit from script
+    if [ -f "/stop" ]; then rm /stop; fi
+    exit 0
+}
+
 # Delete previous stop file (just in case)
 if [ -f "/stop" ]; then rm /stop; fi
 
@@ -62,7 +154,7 @@ chmod 777 "$_LOGS_DIR_INT"
 
 # Replace resolv.conf
 if [ -f "/etc/resolv.conf.override" ]; then
-    echo "Replacing resolv.conf"
+    echo "Replacing resolv.conf..." | tee -a "$_DNSCRYPT_LOG_FILE"
     [ ! -f "/etc/resolv.conf.old" ] && cp /etc/resolv.conf /etc/resolv.conf.old
     cp /etc/resolv.conf.override /etc/resolv.conf
 fi
@@ -71,75 +163,10 @@ fi
 ln -sf "$_DNSCRYPT_LOG_FILE" /var/log/dnscrypt-proxy.err
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service start && sleep 5
 
-# Stops zapret
-zapret_stop() {
-    "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
-}
-
-# Starts zapret and constantly checks if nfqws is running and restarts zapret if not and no /blockcheck file is present
-# (see blockcheck.sh for more info).
-# This is needed because zapret (nfqws) can sometimes stop working on it's own.
-#
-# NOTE: blocking until killed or /stop file is present
-zapret_watchdog() {
-    while true; do
-        # Check for /stop file
-        if [ -f "/stop" ]; then
-            echo "/stop file is present. Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-            zapret_stop
-            break
-        fi
-
-        # Ignore if /blockcheck file is present
-        if [[ -f "/blockcheck" ]]; then
-            echo "zapret watchdog is paused due to /blockcheck file present" | tee -a "$_ZAPRET_LOG_FILE"
-            sleep 1s
-            continue
-        fi
-
-        # Not started yet
-        local nfqws_pid=$(pidof nfqws)
-        if [[ ! -n "${nfqws_pid:-}" ]]; then
-            echo "No nfqws or it died. (re)starting it..." | tee -a "$_ZAPRET_LOG_FILE"
-            "$_ZAPRET_DIR_INT/init.d/sysv/zapret" start | tee -a "$_ZAPRET_LOG_FILE"
-            nfqws_pid=$(pidof nfqws)
-            if [[ -n "${nfqws_pid}" ]]; then
-                echo "nfqws pid: $nfqws_pid" | tee -a "$_ZAPRET_LOG_FILE"
-            else
-                echo "nfqws was unable to start!" | tee -a "$_ZAPRET_LOG_FILE"
-            fi
-        fi
-
-        sleep 1s
-    done
-}
-
-# Stops zapret and it's watchdog and removes /stop file if exists
-cleanup() {
-    echo "Cleaning up..."
-
-    # Stop watchdog first
-    if [[ -n "${zapret_watchdog_pid:-}" ]] && kill -0 "$zapret_watchdog_pid" 2>/dev/null; then
-        echo "Stopping zapret watchdog..."
-        kill "$zapret_watchdog_pid" 2>/dev/null
-        wait "$zapret_watchdog_pid" 2>/dev/null
-    fi
-
-    # Stop zapret
-    local nfqws_pid=$(pidof nfqws)
-    if [[ -n "${nfqws_pid:-}" ]]; then
-        echo "Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
-        zapret_stop
-    fi
-
-    if [ -f "/stop" ]; then rm /stop; fi
-    exit 0
-}
-
 # Start zapret and nfqws watchdog
-zapret_watchdog &
+watchdog "nfqws" zapret_start zapret_stop "$_ZAPRET_LOG_FILE" true &
 zapret_watchdog_pid=$!
-echo "zapret watchdog PID: $zapret_watchdog_pid"
+echo "zapret watchdog PID: $zapret_watchdog_pid" | tee -a "$_ZAPRET_LOG_FILE"
 
 # Start sing-box and restart it in case of kill / error (blocking) (or exit if /stop file exists)
 while true; do

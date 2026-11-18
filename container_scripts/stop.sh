@@ -36,11 +36,11 @@ fi
 touch /stop
 
 # Stop zapret (just in case. Watchdog in entrypoint.sh must stop it if /stop file is present)
-echo "Stopping zapret"
+echo "Stopping zapret..." | tee -a "$_ZAPRET_LOG_FILE"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
 # Stop dnscrypt-proxy and restore default DNS
-echo "Stopping dnscrypt-proxy service and restoring original DNS servers"
+echo "Stopping dnscrypt-proxy service and restoring original DNS servers..." | tee -a "$_DNSCRYPT_LOG_FILE"
 "$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service stop
 if [ -f "/etc/resolv.conf.old" ]; then
     cp /etc/resolv.conf.old /etc/resolv.conf
@@ -50,8 +50,8 @@ fi
 # Finally send SIGTERM to sing-box (because it's the only "blocking" process in entrypoint)
 sing_box_pid=$(pidof "sing-box")
 if [[ $sing_box_pid ]]; then
-    echo "Stopping sing-box"
+    echo "Stopping sing-box..." | tee -a "$_SING_BOX_LOG_FILE"
     kill -15 "$sing_box_pid"
 else
-    echo "sing-box already stopped"
+    echo "sing-box already stopped" | tee -a "$_SING_BOX_LOG_FILE"
 fi
