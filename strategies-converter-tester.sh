@@ -257,7 +257,7 @@ parse_test_bat() {
 
     # Test
     echo "Testing $TEST_URL"
-    docker exec -t zapret-sing-box-docker curl --connect-timeout 1 --max-time 3 -L "$TEST_URL" >/dev/null 2>&1
+    docker exec -t zapret-sing-box-docker curl --connect-timeout 3 --max-time 10 -L "$TEST_URL"
     if [ $? -eq 0 ]; then
         echo "^^ WORKING! WORKING! WORKING! ^^"
     else
